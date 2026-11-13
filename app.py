@@ -61,7 +61,7 @@ with sync_playwright() as p:
     except Exception as e:
         st.error(f"브라우저 실행 중 오류 발생: {e}")
             
-            if bl_type == "M B/L":
+if bl_type == "M B/L":
                 page.locator("input[name='mblNo'], #mblNo, input[title*='M B/L']").first.fill(bl_no)
             else:
                 page.locator("input[name='hblNo'], #hblNo, input[title*='H B/L']").first.fill(bl_no)
