@@ -80,7 +80,7 @@ def search_unipass(bl_no, bl_type):
     return result
 
 
-page.screenshot(path=result["screenshot_path"], full_page=True)
+    page.screenshot(path=result["screenshot_path"], full_page=True)
     body_text = page.inner_text("body")
     result["raw_text"] = body_text
 
