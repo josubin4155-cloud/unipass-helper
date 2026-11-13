@@ -58,7 +58,7 @@ if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다
         browser.close()
         return result
 
-    try:
+try:
         rows = page.locator("table tr").all()
         for row in rows:
             cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
@@ -69,13 +69,13 @@ if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다
                     result["agency"] = cells[i + 1]
                 elif "터미널" in cell and i + 1 < len(cells):
                     result["terminal"] = cells[i + 1]
-    except Exception as e:
+except Exception as e:
         result["error"] = f"조회 중 오류가 발생했습니다: {e}"
         
-    finally:
+finally:
         browser.close()
         
-    return result
+return result
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
             
