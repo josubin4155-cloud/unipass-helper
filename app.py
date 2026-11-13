@@ -1,4 +1,24 @@
 ﻿import streamlit as st
+import streamlit as st
+
+# --- 비밀번호 확인 기능 시작 ---
+def check_password():
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    if not st.session_state["password_correct"]:
+        st.title("🔒 팀 전용 B/L 조회 시스템")
+        pwd = st.text_input("접속 비밀번호를 입력하세요", type="password")
+        if st.button("확인"):
+            if pwd == st.secrets["APP_PASSWORD"]:
+                st.session_state["password_correct"] = True
+                st.rerun()
+            else:
+                st.error("비밀번호가 틀렸습니다.")
+        st.stop()
+
+check_password()
+# --- 비밀번호 확인 기능 끝 ---
 import pandas as pd
 from playwright.sync_api import sync_playwright
 import os
