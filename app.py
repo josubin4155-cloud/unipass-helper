@@ -37,7 +37,6 @@ def load_contacts():
     return pd.DataFrame(columns=["키워드", "구분", "업체명", "홈페이지", "전화번호"])
 
 def search_unipass(bl_no, bl_type):
-def search_unipass(bl_no, bl_type):
     result = {
         "success": False,
         "error": "",
