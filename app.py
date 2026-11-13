@@ -48,16 +48,16 @@ def search_unipass(bl_no, bl_type):
         "raw_text": ""
     }
     
-    with sync_playwright() as p:
-            browser = p.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
-        )
-            context = browser.new_context(viewport={"width": 1280, "height": 1000})
-            page = context.new_page()
-        try:
-            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000)
-            page.wait_for_timeout(1500)
+   with sync_playwright() as p:
+    browser = p.chromium.launch(
+        headless=True,
+        args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+    )
+        context = browser.new_context(viewport={"width": 1280, "height": 1000})
+        page = context.new_page()
+    try:
+        page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000)
+        page.wait_for_timeout(1500)
             
             if bl_type == "M B/L":
                 page.locator("input[name='mblNo'], #mblNo, input[title*='M B/L']").first.fill(bl_no)
