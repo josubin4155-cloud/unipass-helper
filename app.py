@@ -102,11 +102,6 @@ except Exception as e:
             result["success"] = True
             
 
-
-except Exception as e:
-        result["error"] = f"조회 중 오류가 발생했습니다: {e}"
-        
-
 except Exception as e:
         result["error"] = f"조회 중 오류가 발생했습니다: {e}"
         
