@@ -43,22 +43,22 @@ def search_unipass(bl_no, bl_type):
         "carrier": "확인 불가",
         "agency": "확인 불가",
         "terminal": "확인 불가",
-        "containers": []
+        "containers": [],
+        "screenshot_path": "unipass_screenshot.png"
     }
     
-    # [중간 크롤링 및 브라우저 실행 코드들...]
-    # (이 부분은 기존에 작성해두신 코드가 있다면 그에 맞춰 유지하시되, 스크린샷 찍는 부분부터 아래와 같이 맞춰주세요)
+    try:
+        # (기존에 작성하신 브라우저 실행 및 페이지 이동 코드가 있다면 이 위치에 자연스럽게 이어지도록 두시면 됩니다)
+        
+        page.screenshot(path=result["screenshot_path"], full_page=True)
+        body_text = page.inner_text("body")
+        result["raw_text"] = body_text
 
-page.screenshot(path=result["screenshot_path"], full_page=True)
-body_text = page.inner_text("body")
-result["raw_text"] = body_text
+        if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다" in body_text:
+            result["error"] = "유니패스에서 해당 B/L 번호의 화물 진행 정보를 찾을 수 없습니다."
+            browser.close()
+            return result
 
-if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다" in body_text:
-        result["error"] = "유니패스에서 해당 B/L 번호의 화물 진행 정보를 찾을 수 없습니다."
-        browser.close()
-        return result
-
-try:
         rows = page.locator("table tr").all()
         for row in rows:
             cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
@@ -69,11 +69,15 @@ try:
                     result["agency"] = cells[i + 1]
                 elif "터미널" in cell and i + 1 < len(cells):
                     result["terminal"] = cells[i + 1]
-except Exception as e:
+                    
+    except Exception as e:
         result["error"] = f"조회 중 오류가 발생했습니다: {e}"
         
-finally:
-        browser.close()
+    finally:
+        pass
+        # 필요시 browser.close() 등 정리 작업
+        
+    return result
 
 
 page.screenshot(path=result["screenshot_path"], full_page=True)
