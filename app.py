@@ -49,7 +49,7 @@ def search_unipass(bl_no, bl_type):
     # [중간 크롤링 및 브라우저 실행 코드들...]
     # (이 부분은 기존에 작성해두신 코드가 있다면 그에 맞춰 유지하시되, 스크린샷 찍는 부분부터 아래와 같이 맞춰주세요)
 
-    page.screenshot(path=result["screenshot_path"], full_page=True)
+page.screenshot(path=result["screenshot_path"], full_page=True)
     body_text = page.inner_text("body")
     result["raw_text"] = body_text
 
@@ -76,7 +76,6 @@ def search_unipass(bl_no, bl_type):
         browser.close()
         
     return result
-            page.screenshot(path=result["screenshot_path"], full_page=True)
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
             
