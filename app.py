@@ -83,30 +83,6 @@ def search_unipass(bl_no, bl_type):
         result["error"] = f"조회 중 오류가 발생했습니다: {e}"
         
     return result
-    except Exception as e:
-        result["error"] = f"조회 중 오류가 발생했습니다: {e}"
-        
-    finally:
-        pass
-        # 필요시 browser.close() 등 정리 작업
-        
-    return result
-
-
-    page.screenshot(path=result["screenshot_path"], full_page=True)
-    body_text = page.inner_text("body")
-    result["raw_text"] = body_text
-
-    if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다" in body_text:
-        result["error"] = "유니패스에서 해당 B/L 번호의 화물 진행 정보를 찾을 수 없습니다."
-        browser.close()
-        return result
-
-    try:
-        rows = page.locator("table tr").all()
-        for row in rows:
-            cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
-            for i, cell in enumerate(cells):
                 if "선사/항공사" in cell and i + 1 < len(cells):
                     result["carrier"] = cells[i + 1]
                 elif "선박대리점" in cell and i + 1 < len(cells):
