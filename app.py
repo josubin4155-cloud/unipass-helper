@@ -76,6 +76,7 @@ finally:
         browser.close()
 
 
+    page.screenshot(path=result["screenshot_path"], full_page=True)
     body_text = page.inner_text("body")
     result["raw_text"] = body_text
 
@@ -83,29 +84,25 @@ finally:
         result["error"] = "유니패스에서 해당 B/L 번호의 화물 진행 정보를 찾을 수 없습니다."
         browser.close()
         return result
-            for row in rows:
-                cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
-                for i, cell in enumerate(cells):
-                    if "선사/항공사" in cell and i + 1 < len(cells):
-                        result["carrier"] = cells[i + 1]
-                    elif "선박대리점" in cell and i + 1 < len(cells):
-                        result["agency"] = cells[i + 1]
-                    elif ("장치장" in cell or "반입장소" in cell) and i + 1 < len(cells):
-                        if cells[i + 1] and result["terminal"] == "확인 불가":
-                            result["terminal"] = cells[i + 1]
 
-            cntr_matches = re.findall(r'\b[A-Z]{4}\d{7}\b', body_text)
-            result["containers"] = list(dict.fromkeys(cntr_matches))
-            result["success"] = True
-            
-
-except Exception as e:
+    try:
+        rows = page.locator("table tr").all()
+        for row in rows:
+            cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
+            for i, cell in enumerate(cells):
+                if "선사/항공사" in cell and i + 1 < len(cells):
+                    result["carrier"] = cells[i + 1]
+                elif "선박대리점" in cell and i + 1 < len(cells):
+                    result["agency"] = cells[i + 1]
+                elif "터미널" in cell and i + 1 < len(cells):
+                    result["terminal"] = cells[i + 1]
+    except Exception as e:
         result["error"] = f"조회 중 오류가 발생했습니다: {e}"
         
-finally:
+    finally:
         browser.close()
         
-return result
+    return result
 
 st.title("🚢 포워딩 B/L & 양하조회 자동화 대시보드")
 st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선사/대리점/터미널 연락처와 컨테이너 번호를 보여줍니다.")
