@@ -37,45 +37,46 @@ def load_contacts():
     return pd.DataFrame(columns=["키워드", "구분", "업체명", "홈페이지", "전화번호"])
 
 def search_unipass(bl_no, bl_type):
+def search_unipass(bl_no, bl_type):
     result = {
         "success": False,
         "error": "",
         "carrier": "확인 불가",
         "agency": "확인 불가",
         "terminal": "확인 불가",
-        "containers": [],
-        "screenshot_path": "unipass_result.png",
-        "raw_text": ""
+        "containers": []
     }
+    
+    # [중간 크롤링 및 브라우저 실행 코드들...]
+    # (이 부분은 기존에 작성해두신 코드가 있다면 그에 맞춰 유지하시되, 스크린샷 찍는 부분부터 아래와 같이 맞춰주세요)
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(
-        headless=True,
-        args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
-    )
-    context = browser.new_context(viewport={"width": 1280, "height": 1000})
-    page = context.new_page()
+    page.screenshot(path=result["screenshot_path"], full_page=True)
+    body_text = page.inner_text("body")
+    result["raw_text"] = body_text
+
+    if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다" in body_text:
+        result["error"] = "유니패스에서 해당 B/L 번호의 화물 진행 정보를 찾을 수 없습니다."
+        browser.close()
+        return result
+
     try:
-        page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000)
-        page.wait_for_timeout(1500)
+        rows = page.locator("table tr").all()
+        for row in rows:
+            cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
+            for i, cell in enumerate(cells):
+                if "선사/항공사" in cell and i + 1 < len(cells):
+                    result["carrier"] = cells[i + 1]
+                elif "선박대리점" in cell and i + 1 < len(cells):
+                    result["agency"] = cells[i + 1]
+                elif "터미널" in cell and i + 1 < len(cells):
+                    result["terminal"] = cells[i + 1]
     except Exception as e:
-        st.error(f"브라우저 실행 중 오류 발생: {e}")
-            
-try:
-        page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000)
-        page.wait_for_timeout(1500)
-
-        if bl_type == "M B/L":
-            page.locator("input[name='mblNo'], #mblNo, input[title*='M B/L']").first.fill(bl_no)
-        else:
-            page.locator("input[name='hblNo'], #hblNo, input[title*='H B/L']").first.fill(bl_no)
-
-        page.keyboard.press("Enter")
-        page.wait_for_timeout(3500)
-except Exception as e:
-            st.error(f"브라우저 실행 중 오류 발생: {e}")
-            page.wait_for_timeout(3500)
-            
+        result["error"] = f"조회 중 오류가 발생했습니다: {e}"
+        
+    finally:
+        browser.close()
+        
+    return result
             page.screenshot(path=result["screenshot_path"], full_page=True)
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
