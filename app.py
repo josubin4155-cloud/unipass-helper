@@ -48,7 +48,7 @@ def search_unipass(bl_no, bl_type):
         "raw_text": ""
     }
     
-        with sync_playwright() as p:
+    with sync_playwright() as p:
             browser = p.chromium.launch(
             headless=True,
             args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
