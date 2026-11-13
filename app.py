@@ -76,7 +76,7 @@ def search_unipass(bl_no, bl_type):
                         result["agency"] = cells[i + 1]
                     elif "터미널" in cell and i + 1 < len(cells):
                         result["terminal"] = cells[i + 1]
-browser.close()
+            browser.close()
             
     except Exception as e:
         result["error"] = f"조회 중 오류가 발생했습니다: {e}"
