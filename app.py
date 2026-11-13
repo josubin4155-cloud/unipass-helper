@@ -1,4 +1,6 @@
-﻿import streamlit as st
+﻿import os
+os.system("playwright install chromium")
+import streamlit as st
 import streamlit as st
 
 # --- 비밀번호 확인 기능 시작 ---
