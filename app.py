@@ -101,11 +101,14 @@ except Exception as e:
             result["containers"] = list(dict.fromkeys(cntr_matches))
             result["success"] = True
             
+
+
 except Exception as e:
-            result["error"] = f"조회 중 오류가 발생했습니다: {str(e)}"
-finally:
-            browser.close()
-            
+        result["error"] = f"조회 중 오류가 발생했습니다: {e}"
+        
+    finally:
+        browser.close()
+        
     return result
 
 st.title("🚢 포워딩 B/L & 양하조회 자동화 대시보드")
