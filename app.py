@@ -108,7 +108,7 @@ except Exception as e:
 finally:
         browser.close()
         
-    return result
+return result
 
 st.title("🚢 포워딩 B/L & 양하조회 자동화 대시보드")
 st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선사/대리점/터미널 연락처와 컨테이너 번호를 보여줍니다.")
