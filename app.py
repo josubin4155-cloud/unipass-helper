@@ -76,7 +76,7 @@ finally:
         browser.close()
 
 
-bbody_text = page.inner_text("body")
+body_text = page.inner_text("body")
 result["raw_text"] = body_text
 
     if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다" in body_text:
