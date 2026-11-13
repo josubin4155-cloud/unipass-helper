@@ -81,8 +81,8 @@ def search_unipass(bl_no, bl_type):
 
 
 page.screenshot(path=result["screenshot_path"], full_page=True)
-body_text = page.inner_text("body")
-result["raw_text"] = body_text
+    body_text = page.inner_text("body")
+    result["raw_text"] = body_text
 
     if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다" in body_text:
         result["error"] = "유니패스에서 해당 B/L 번호의 화물 진행 정보를 찾을 수 없습니다."
