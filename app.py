@@ -54,6 +54,39 @@ def search_unipass(bl_no, bl_type):
             
             # 유니패스 페이지로 이동
             page.goto("https://unipass.customs.go.kr/csp/index.do")
+def search_unipass(bl_no, bl_type):
+    result = {
+        "success": False,
+        "error": "",
+        "carrier": "확인 불가",
+        "agency": "확인 불가",
+        "terminal": "확인 불가",
+        "containers": [],
+        "screenshot_path": "unipass_screenshot.png"
+    }
+    
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            
+            # 1. 유니패스 페이지로 이동
+            page.goto("https://unipass.customs.go.kr/csp/index.do")
+            
+            # 👇👇 [여기에 바로 넣어주시면 됩니다!] 👇👇
+            # 2. B/L 번호 입력 및 조회 버튼 클릭 동작
+            page.fill("input[name='blNo']", bl_no)  # B/L 번호 입력창에 번호 넣기
+            page.click("#txtBlBtn")                 # 조회 버튼 클릭 (또는 검색 실행)
+            
+            # 3. 결과 페이지가 로딩될 때까지 대기
+            page.wait_for_load_state("networkidle")
+            # 👆👆----------------------------------👆👆
+            
+            page.screenshot(path=result["screenshot_path"], full_page=True)
+            body_text = page.inner_text("body")
+            result["raw_text"] = body_text
+
+            # (이후 테이블 파싱 및 브라우저 종료 코드들...)
             
             # (필요한 경우 B/L 번호 입력 및 조회 버튼 클릭 코드가 이 아래에 위치합니다)
             
