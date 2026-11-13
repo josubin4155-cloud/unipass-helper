@@ -84,7 +84,6 @@ except Exception as e:
                 result["error"] = "유니패스에서 해당 B/L 번호의 화물 진행 정보를 찾을 수 없습니다."
                 browser.close()
                 return result
-            rows = page.locator("table tr").all()
             for row in rows:
                 cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
                 for i, cell in enumerate(cells):
