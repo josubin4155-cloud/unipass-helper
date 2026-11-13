@@ -1,7 +1,9 @@
-﻿import os
+import os
 os.system("playwright install chromium")
 import streamlit as st
-import streamlit as st
+import pandas as pd
+from playwright.sync_api import sync_playwright
+import re
 
 # --- 비밀번호 확인 기능 시작 ---
 def check_password():
@@ -21,10 +23,6 @@ def check_password():
 
 check_password()
 # --- 비밀번호 확인 기능 끝 ---
-import pandas as pd
-from playwright.sync_api import sync_playwright
-import os
-import re
 
 st.set_page_config(page_title="포워딩 B/L & 양하조회 도우미", page_icon="🚢", layout="wide")
 
@@ -52,43 +50,45 @@ def search_unipass(bl_no, bl_type):
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
             
-            # 유니패스 페이지로 이동
-            page.goto("https://unipass.customs.go.kr/csp/index.do")
-def search_unipass(bl_no, bl_type):
-    result = {
-        "success": False,
-        "error": "",
-        "carrier": "확인 불가",
-        "agency": "확인 불가",
-        "terminal": "확인 불가",
-        "containers": [],
-        "screenshot_path": "unipass_screenshot.png"
-    }
-    
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            
-            # 1. 유니패스 페이지로 이동
+            # 1. 유니패스 메인 페이지로 이동
             page.goto("https://unipass.customs.go.kr/csp/index.do")
             
-            # 👇👇 [여기에 바로 넣어주시면 됩니다!] 👇👇
-            # 2. B/L 번호 입력 및 조회 버튼 클릭 동작
-            page.fill("input[name='blNo']", bl_no)  # B/L 번호 입력창에 번호 넣기
-            page.click("#txtBlBtn")                 # 조회 버튼 클릭 (또는 검색 실행)
+            # 2. B/L 번호 입력 및 조회 버튼 클릭
+            page.fill("input[name='blNo']", bl_no)
+            page.click("#txtBlBtn")
             
-            # 3. 결과 페이지가 로딩될 때까지 대기
+            # 3. 상세 조회 결과 페이지 로딩 대기
             page.wait_for_load_state("networkidle")
-            # 👆👆----------------------------------👆👆
             
+            # 4. 결과 화면 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"], full_page=True)
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
 
-            # (이후 테이블 파싱 및 브라우저 종료 코드들...)
+            if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다" in body_text:
+                result["error"] = "유니패스에서 해당 B/L 번호의 화물 진행 정보를 찾을 수 없습니다."
+                browser.close()
+                return result
+
+            # 5. 테이블 정보 파싱 (선사/대리점/터미널 추출)
+            rows = page.locator("table tr").all()
+            for row in rows:
+                cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
+                for i, cell in enumerate(cells):
+                    if "선사/항공사" in cell and i + 1 < len(cells):
+                        result["carrier"] = cells[i + 1]
+                    elif "선박대리점" in cell and i + 1 < len(cells):
+                        result["agency"] = cells[i + 1]
+                    elif "터미널" in cell and i + 1 < len(cells):
+                        result["terminal"] = cells[i + 1]
+                        
+            browser.close()
+            result["success"] = True
             
-            # (필요한 경우 B/L 번호 입력 및 조회 버튼 클릭 코드가 이 아래에 위치합니다)
+    except Exception as e:
+        result["error"] = f"조회 중 오류가 발생했습니다: {e}"
+        
+    return result
             
             page.screenshot(path=result["screenshot_path"], full_page=True)
             body_text = page.inner_text("body")
