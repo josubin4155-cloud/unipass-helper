@@ -17,7 +17,6 @@ libxcursor1
 libxdamage1
 libxext6
 libxfixes3
-libxi1
 libxrandr2
 libxrender1
 libxtst6
