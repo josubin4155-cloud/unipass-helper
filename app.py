@@ -52,22 +52,44 @@ def search_unipass(bl_no, bl_type):
             page = browser.new_page()
             
             # 1. 유니패스 메인 페이지로 이동
-            page.goto("https://unipass.customs.go.kr/csp/index.do")
+            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=60000)
+            page.wait_for_load_state("networkidle")
             
-            # 2. B/L 종류 선택 (H B/L 또는 M B/L)
-            if bl_type == "H B/L":
-                # H B/L 라디오버튼이나 셀렉트박스 선택 동작 (유니패스 화면 구조 맞춤)
+            # 2. B/L 번호 입력창을 유연하게 찾아 입력
+            input_found = False
+            selectors_to_try = [
+                "input[placeholder*='B/L']",
+                "input[title*='B/L']",
+                "input[name*='blNo']",
+                "input[id*='blNo']",
+                "input[type='text']"
+            ]
+            
+            for sel in selectors_to_try:
                 try:
-                    page.click("label:has-text('H B/L')", timeout=3000)
+                    page.locator(sel).first.fill(bl_no, timeout=3000)
+                    input_found = True
+                    break
                 except:
-                    pass
+                    continue
             
-            # 3. B/L 번호 입력 및 조회 버튼 클릭
-            page.fill("input[name='blNo']", bl_no)
-            page.click("#txtBlBtn")
+            if not input_found:
+                result["error"] = "유니패스 페이지에서 B/L 입력창을 찾지 못했습니다."
+                browser.close()
+                return result
+            
+            # 3. 조회 버튼 클릭
+            try:
+                page.click("text=조회", timeout=3000)
+            except:
+                try:
+                    page.click("button:has-text('조회')", timeout=3000)
+                except:
+                    page.keyboard.press("Enter")
             
             # 4. 상세 조회 결과 페이지 로딩 대기
             page.wait_for_load_state("networkidle")
+            page.wait_for_timeout(3000)
             
             # 5. 결과 화면 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"], full_page=True)
@@ -79,7 +101,7 @@ def search_unipass(bl_no, bl_type):
                 browser.close()
                 return result
 
-            # 6. 테이블 정보 파싱 (선사/대리점/터미널 및 컨테이너 번호 추출)
+            # 6. 테이블 정보 파싱 (선사/대리점/터미널 추출)
             rows = page.locator("table tr").all()
             for row in rows:
                 cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
@@ -91,7 +113,7 @@ def search_unipass(bl_no, bl_type):
                     elif "터미널" in cell and i + 1 < len(cells):
                         result["terminal"] = cells[i + 1]
             
-            # 컨테이너 번호 패턴 추출 (예: 영문4자리 + 숫자7자리 등)
+            # 컨테이너 번호 패턴 추출
             found_containers = re.findall(r'[A-Z]{4}\d{7}', body_text)
             result["containers"] = list(set(found_containers))
                         
