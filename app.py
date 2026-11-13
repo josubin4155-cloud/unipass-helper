@@ -106,7 +106,11 @@ except Exception as e:
 except Exception as e:
         result["error"] = f"조회 중 오류가 발생했습니다: {e}"
         
-finally:
+
+except Exception as e:
+        result["error"] = f"조회 중 오류가 발생했습니다: {e}"
+        
+    finally:
         browser.close()
         
     return result
