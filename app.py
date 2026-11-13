@@ -47,8 +47,45 @@ def search_unipass(bl_no, bl_type):
         "screenshot_path": "unipass_screenshot.png"
     }
     
-    try:
-        # (기존에 작성하신 브라우저 실행 및 페이지 이동 코드가 있다면 이 위치에 자연스럽게 이어지도록 두시면 됩니다)
+   try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            
+            # 유니패스 페이지로 이동
+            page.goto("https://unipass.customs.go.kr/csp/index.do")
+            
+            # (필요한 경우 B/L 번호 입력 및 조회 버튼 클릭 코드가 이 아래에 위치해야 합니다)
+            
+            # 스크린샷 및 텍스트 추출
+            page.screenshot(path=result["screenshot_path"], full_page=True)
+            body_text = page.inner_text("body")
+            result["raw_text"] = body_text
+
+            if "조회된 내역이 없습니다" in body_text or "존재하지 않습니다" in body_text:
+                result["error"] = "유니패스에서 해당 B/L 번호의 화물 진행 정보를 찾을 수 없습니다."
+                browser.close()
+                return result
+
+            rows = page.locator("table tr").all()
+            for row in rows:
+                cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
+                for i, cell in enumerate(cells):
+                    if "선사/항공사" in cell and i + 1 < len(cells):
+                        result["carrier"] = cells[i + 1]
+                    elif "선박대리점" in cell and i + 1 < len(cells):
+                        result["agency"] = cells[i + 1]
+                    elif "터미널" in cell and i + 1 < len(cells):
+                        result["terminal"] = cells[i + 1]
+                        
+            browser.close()
+            
+    except Exception as e:
+        result["error"] = f"조회 중 오류가 발생했습니다: {e}"
+        
+    return result
+        
+        # 여기에 B/L 번호 입력 및 조회 버튼 클릭 등의 자동화 코드가 위치해야 합니다
         
         page.screenshot(path=result["screenshot_path"], full_page=True)
         body_text = page.inner_text("body")
