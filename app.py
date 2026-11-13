@@ -61,12 +61,19 @@ with sync_playwright() as p:
     except Exception as e:
         st.error(f"브라우저 실행 중 오류 발생: {e}")
             
-if bl_type == "M B/L":
-                page.locator("input[name='mblNo'], #mblNo, input[title*='M B/L']").first.fill(bl_no)
-            else:
-                page.locator("input[name='hblNo'], #hblNo, input[title*='H B/L']").first.fill(bl_no)
-                
-            page.keyboard.press("Enter")
+try:
+        page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000)
+        page.wait_for_timeout(1500)
+
+        if bl_type == "M B/L":
+            page.locator("input[name='mblNo'], #mblNo, input[title*='M B/L']").first.fill(bl_no)
+        else:
+            page.locator("input[name='hblNo'], #hblNo, input[title*='H B/L']").first.fill(bl_no)
+
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(3500)
+    except Exception as e:
+        st.error(f"브라우저 실행 중 오류 발생: {e}")
             page.wait_for_timeout(3500)
             
             page.screenshot(path=result["screenshot_path"], full_page=True)
