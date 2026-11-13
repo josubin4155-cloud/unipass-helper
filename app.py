@@ -47,9 +47,9 @@ def search_unipass(bl_no, bl_type):
         "screenshot_path": "unipass_result.png",
         "raw_text": ""
     }
-    
+
 with sync_playwright() as p:
-         browser = p.chromium.launch(
+        browser = p.chromium.launch(
         headless=True,
         args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
     )
