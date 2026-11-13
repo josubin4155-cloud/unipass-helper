@@ -72,7 +72,7 @@ try:
 
         page.keyboard.press("Enter")
         page.wait_for_timeout(3500)
-            except Exception as e:
+except Exception as e:
             st.error(f"브라우저 실행 중 오류 발생: {e}")
             page.wait_for_timeout(3500)
             
