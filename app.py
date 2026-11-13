@@ -74,7 +74,7 @@ except Exception as e:
         
 finally:
         browser.close()
-        
+
 
 body_text = page.inner_text("body")
 result["raw_text"] = body_text
