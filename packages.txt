@@ -12,3 +12,14 @@ libasound2
 libgbm1
 libpango-1.0-0
 libcairo2
+libXcomposite1
+libXcursor1
+libXdamage1
+libXext6
+libXfixes3
+libXi6
+libXrandr2
+libXrender1
+libXss1
+libXtst6
+libasound2t64
