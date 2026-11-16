@@ -234,7 +234,6 @@ def search_unipass(bl_no, bl_type):
                             result["terminal"] = val
             
             # 📦 국제 표준 컨테이너 번호 형식(앞 4자리 중 마지막이 U, J, Z + 숫자 7자리)만 정확히 추출
-            # 💡 검색한 MBL 번호가 포함된 상단 요약 테이블은 제외하고, 하단 결과 테이블 텍스트에서만 컨테이너 번호 추출!
             # 📦 국제 표준 컨테이너 번호 형식 추출 (상단 MBL/HBL 기본 요약 표는 철저히 배제하고 본문 표에서만 추출)
             found_containers = []
             tables = page.locator("table").all()
