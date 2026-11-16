@@ -112,6 +112,7 @@ def search_unipass(bl_no, bl_type):
         "agency": "확인 불가",
         "arrival_date": "확인 불가",
         "terminal": "확인 불가",
+        "latest_location": "확인 불가",
         "containers": [],
         "screenshot_path": "unipass_screenshot.png",
         "raw_text": ""
@@ -202,6 +203,32 @@ def search_unipass(bl_no, bl_type):
                         val = cells[i + 1]
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
+
+            # 9. 실시간 장치장명(가장 최근 정보: 링크 바로 아래 텍스트) 추출 파싱[cite: 9, 10]
+            try:
+                headers = [th.inner_text().strip() for th in page.locator("table th").all()]
+                target_col_idx = -1
+                for idx, h in enumerate(headers):
+                    if "장치장" in h:
+                        target_col_idx = idx
+                        break
+                
+                if target_col_idx != -1:
+                    table_rows = page.locator("table tr").all()
+                    for row in table_rows:
+                        tds = row.locator("td").all()
+                        if len(tds) > target_col_idx:
+                            cell_text = tds[target_col_idx].inner_text().strip()
+                            lines = [l.strip() for l in cell_text.split('\n') if l.strip()]
+                            # 첫 줄은 코드(링크), 둘째 줄이 장치장명 (예: (주)스카이국제운송)[cite: 9, 10]
+                            if len(lines) >= 2:
+                                result["latest_location"] = lines[1]
+                                break
+                            elif len(lines) == 1 and not lines[0].isdigit():
+                                result["latest_location"] = lines[0]
+                                break
+            except Exception as loc_parse_err:
+                print(f"실시간 장치장명 파싱 중 오류: {loc_parse_err}")
             
             found_containers = re.findall(r'[A-Z]{4}\d{7}', body_text)
             result["containers"] = list(set(found_containers))
@@ -252,9 +279,9 @@ if search_clicked:
         
         loading_steps = [
             ("🚢", f"[{bl_no}] 화물을 향해 출항 준비 중..."),
-            ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중...우다다..."),
-            ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중...쇽쇽..."),
-            ("📦", "컨테이너 번호와 물류 데이터를 말끔히 정리하는 중...")
+            ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중..."),
+            ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중..."),
+            ("📦", "컨테이너 번호와 실시간 장치장명을 말끔히 정리하는 중...")
         ]
         
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -321,6 +348,10 @@ if search_clicked:
                         st.code(cntr, language=None)
                 else:
                     st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
+                
+                st.markdown("")
+                st.subheader("📍 실시간 최신 장치장명")
+                st.info(f"🏢 **{data['latest_location']}**")
             
             st.markdown("---")
             st.subheader("📸 유니패스 조회 결과 캡처")
