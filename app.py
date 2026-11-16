@@ -26,7 +26,70 @@ def check_password():
 check_password()
 # --- 비밀번호 확인 기능 끝 ---
 
-st.set_page_config(page_title="포워딩 B/L & 양하조회 대시보드", page_icon="🚢", layout="wide")
+st.set_page_config(page_title="FNH LOGISTICS - B/L & 양하조회 대시보드", page_icon="🚢", layout="wide")
+
+# 🎨 [FNH 로지스틱스 브랜드 커스텀 CSS 적용]
+st.markdown("""
+    <style>
+    /* 전체 배경 톤앤매너: 세련된 소프트 오프화이트 */
+    .stApp {
+        background-color: #f8fafc;
+    }
+    
+    /* 타이틀 및 헤더 스타일 (딥 네이비 감성) */
+    h1 {
+        font-weight: 800 !important;
+        color: #0f172a !important;
+        letter-spacing: -0.5px;
+    }
+    h2, h3 {
+        color: #1e293b !important;
+        font-weight: 700 !important;
+    }
+    
+    /* 상단 요약 메트릭 카드 디자인 (화이트 카드 + 입체 테두리) */
+    div[data-testid="stMetric"] {
+        background-color: #ffffff;
+        padding: 18px 20px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+    div[data-testid="stMetric"] label {
+        color: #64748b !important;
+        font-weight: 600 !important;
+    }
+    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+        color: #0f172a !important;
+    }
+    
+    /* 🔍 유니패스 조회 버튼 (FNH 로고 포인트 레드 적용) */
+    button[kind="primary"] {
+        background-color: #e11d48 !important;
+        border-color: #e11d48 !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+    }
+    button[kind="primary"]:hover {
+        background-color: #be123c !important;
+        border-color: #be123c !important;
+    }
+    
+    /* 컨테이너 번호 코드 박스 */
+    div[data-testid="stCode"] {
+        border-radius: 8px !important;
+        border: 1px solid #cbd5e1 !important;
+        background-color: #ffffff !important;
+    }
+    
+    /* 사이드바 스타일 정돈 */
+    section[data-testid="stSidebar"] {
+        background-color: #ffffff;
+        border-right: 1px solid #e2e8f0;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 def load_contacts():
     if os.path.exists("contacts.csv"):
@@ -96,7 +159,7 @@ def search_unipass(bl_no, bl_type):
             except:
                 page.keyboard.press("Enter")
             
-            # 5. 검색 결과 페이지 로딩 대기 (충분히 기다려주기)
+            # 5. 검색 결과 페이지 로딩 대기
             page.wait_for_load_state("domcontentloaded", timeout=15000)
             page.wait_for_timeout(2000)
             
@@ -106,7 +169,7 @@ def search_unipass(bl_no, bl_type):
                     page.wait_for_selector("table tr td a", timeout=7000)
                     page.locator("table tr td a").first.click()
                     page.wait_for_load_state("domcontentloaded", timeout=15000)
-                    page.wait_for_timeout(2000)  # 상세 테이블 데이터가 완전히 렌더링될 때까지 안정적으로 대기
+                    page.wait_for_timeout(2000)  # 데이터 렌더링 안정 대기
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
@@ -152,7 +215,7 @@ def search_unipass(bl_no, bl_type):
     return result
 
 # 메인 UI 화면 구성
-st.title("🚢 포워딩 B/L & 양하조회 대시보드")
+st.title("🚢 FNH LOGISTICS - B/L & 양하조회 대시보드")
 st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선사/대리점/입항일 정보와 연락처, 컨테이너 번호를 보여줍니다.")
 
 with st.sidebar:
@@ -188,9 +251,9 @@ if search_clicked:
         loading_placeholder = st.empty()
         
         loading_steps = [
-            ("🚢", f"[{bl_no}] 바다로 출항 준비 중..."),
-            ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중 우다다..."),
-            ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중...쇽쇽..."),
+            ("🚢", f"[{bl_no}] 화물을 향해 출항 준비 중..."),
+            ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중..."),
+            ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중..."),
             ("📦", "컨테이너 번호와 물류 데이터를 말끔히 정리하는 중...")
         ]
         
