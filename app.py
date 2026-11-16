@@ -31,7 +31,13 @@ st.set_page_config(page_title="FNH LOGISTICS - 화물 정보 대시보드", page
 # 🎨 [FNH 로지스틱스 브랜드 및 글씨 크기 커스텀 CSS 적용]
 st.markdown("""
     <style>
+    /* 전체 앱에 깔끔한 모던 한글 폰트 적용 */
+    html, body, [class*="css"] {
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif !important;
+    }
+
     /* 전체 배경 톤앤매너: 세련된 소프트 오프화이트 */
+    .stApp {
     .stApp {
         background-color: #f8fafc;
     }
