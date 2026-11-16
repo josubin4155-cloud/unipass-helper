@@ -247,9 +247,8 @@ def search_unipass(bl_no, bl_type):
                 valid_tables_text += " " + t_text
 
             # 💡 [수정된 부분] 페이지 전체에서 컨테이너 형식을 찾되, 입력한 B/L 번호와 정확히 일치하는 것만 목록에서 제외!
-            found_containers = re.findall(r'[A-Z]{3}[UJZ]\d{7}', body_text)
+            found_containers = re.findall(r'[A-Z]{3}[UJZ]\d{7}', valid_tables_text)
             result["containers"] = list(set([c for c in found_containers if c != bl_no]))
-                        
             browser.close()
             result["success"] = True
             
