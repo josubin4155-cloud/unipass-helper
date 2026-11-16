@@ -48,19 +48,22 @@ def search_unipass(bl_no, bl_type):
     
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            # 브라우저 실행 시 속도를 높여주는 최적화 옵션(args) 추가
+            browser = p.chromium.launch(
+                headless=True,
+                args=['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage', '--disable-extensions']
+            )
             page = browser.new_page()
             
-            # 1. 유니패스 메인 페이지로 이동
-            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=60000)
-            page.wait_for_load_state("networkidle")
+            # 1. 유니패스 메인 페이지로 이동 (domcontentloaded로 변경해 대기 시간 대폭 단축)
+            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000, wait_until="domcontentloaded")
             
             # 2. M B/L - H B/L 구분 라디오버튼 선택
             try:
-                page.click("label:has-text('M B/L - H B/L')", timeout=3000)
+                page.click("label:has-text('M B/L - H B/L')", timeout=2000)
             except:
                 try:
-                    page.click("input[value='MH']", timeout=3000)
+                    page.click("input[value='MH']", timeout=2000)
                 except:
                     pass
             
@@ -68,13 +71,10 @@ def search_unipass(bl_no, bl_type):
             try:
                 inputs = page.locator("input[type='text']")
                 if bl_type == "M B/L":
-                    # M B/L (왼쪽 입력창)
                     inputs.first.fill(bl_no)
                 else:
-                    # H B/L (오른쪽 입력창 - 보통 두 번째 텍스트 박스)
                     inputs.nth(1).fill(bl_no)
             except Exception as e:
-                # 예외 시 대체 셀렉터로 입력 시도
                 if bl_type == "M B/L":
                     page.fill("input[name*='mblNo']", bl_no)
                 else:
@@ -82,28 +82,25 @@ def search_unipass(bl_no, bl_type):
             
             # 4. 조회 버튼 클릭
             try:
-                page.click("text=조회", timeout=3000)
+                page.click("text=조회", timeout=2000)
             except:
                 try:
-                    page.click("#txtBlBtn", timeout=3000)
+                    page.click("#txtBlBtn", timeout=2000)
                 except:
                     page.keyboard.press("Enter")
             
-            # 5. 검색 결과 페이지 로딩 대기
-            page.wait_for_load_state("networkidle")
-            page.wait_for_timeout(3000)
+            # 5. 검색 결과 페이지 로딩 (빠른 domcontentloaded 사용으로 대기 시간 단축)
+            page.wait_for_load_state("domcontentloaded", timeout=15000)
             
-            # 6. [핵심] M B/L인 경우 결과 목록에서 화물관리번호 링크 클릭하여 상세 페이지 진입
+            # 6. M B/L인 경우 화물관리번호 링크 클릭하여 상세 페이지 진입
             if bl_type == "M B/L":
                 try:
-                    # 결과 테이블 안의 첫 번째 화물관리번호 링크 클릭
-                    page.locator("table tr td a").first.click(timeout=5000)
-                    page.wait_for_load_state("networkidle")
-                    page.wait_for_timeout(3000)
+                    page.locator("table tr td a").first.click(timeout=3000)
+                    page.wait_for_load_state("domcontentloaded", timeout=15000)
                 except Exception as link_err:
-                    print(f"화물관리번호 링크 클릭 중 예외 (이미 상세페이지일 수 있음): {link_err}")
+                    print(f"화물관리번호 링크 클릭 예외: {link_err}")
             
-            # 7. 최종 상세 페이지 화면 캡처 및 텍스트 추출
+            # 7. 최종 상세 페이지 화면 캡처 및 텍스트 추출 (불필요한 sleep 제거)
             page.screenshot(path=result["screenshot_path"], full_page=True)
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
@@ -113,7 +110,7 @@ def search_unipass(bl_no, bl_type):
                 browser.close()
                 return result
 
-            # 8. 상세 테이블 정보 파싱 (선사/대리점/터미널 추출)
+            # 8. 상세 테이블 정보 파싱
             rows = page.locator("table tr").all()
             for row in rows:
                 cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
@@ -125,7 +122,6 @@ def search_unipass(bl_no, bl_type):
                     elif "터미널" in cell and i + 1 < len(cells):
                         result["terminal"] = cells[i + 1]
             
-            # 컨테이너 번호 패턴 추출
             found_containers = re.findall(r'[A-Z]{4}\d{7}', body_text)
             result["containers"] = list(set(found_containers))
                         
