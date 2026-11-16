@@ -118,7 +118,6 @@ def search_unipass(bl_no, bl_type):
         "agency": "확인 불가",
         "arrival_date": "확인 불가",
         "terminal": "확인 불가",
-        "latest_location": "확인 불가",
         "containers": [],
         "screenshot_path": "unipass_screenshot.png",
         "raw_text": ""
@@ -209,37 +208,6 @@ def search_unipass(bl_no, bl_type):
                         val = cells[i + 1]
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
-
-            # 9. 장치장 현황 정밀 파싱
-            try:
-                table_rows = page.locator("table tr").all()
-                for row in table_rows:
-                    cells = row.locator("td").all()
-                    for cell in cells:
-                        text = cell.inner_text().strip()
-                        lines = [l.strip() for l in text.split('\n') if l.strip()]
-                        for line in lines:
-                            if any(kw in line for kw in ["(주)", "창고", "터미널", "운송", "물류", "CY", "CFS", "항만", "운수", "해운", "공사", "부두", "국제"]):
-                                if result["latest_location"] == "확인 불가":
-                                    result["latest_location"] = line
-                                    break
-                            elif line.isdigit() and len(line) >= 5:
-                                idx = lines.index(line)
-                                if idx + 1 < len(lines):
-                                    candidate = lines[idx + 1]
-                                    if not any(u in candidate for u in ["KG", "GT", "톤", "일시", "-"]):
-                                        if result["latest_location"] == "확인 불가":
-                                            result["latest_location"] = candidate
-                                            break
-                        if result["latest_location"] != "확인 불가":
-                            break
-                    if result["latest_location"] != "확인 불가":
-                        break
-                
-                if result["latest_location"] == "확인 불가" and result["terminal"] != "확인 불가":
-                    result["latest_location"] = result["terminal"]
-            except Exception as loc_parse_err:
-                print(f"장치장 현황 파싱 중 오류: {loc_parse_err}")
             
             found_containers = re.findall(r'[A-Z]{4}\d{7}', body_text)
             result["containers"] = list(set(found_containers))
@@ -292,7 +260,7 @@ if search_clicked:
             ("🚢", f"[{bl_no}] 화물을 향해 출항 준비 중..."),
             ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중..."),
             ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중..."),
-            ("📦", "컨테이너 번호와 장치장 현황을 말끔히 정리하는 중...")
+            ("📦", "컨테이너 번호와 물류 데이터를 말끔히 정리하는 중...")
         ]
         
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -366,10 +334,6 @@ if st.session_state["search_done"]:
                 st.code(cntr, language=None)
         else:
             st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
-        
-        st.markdown("")
-        st.subheader("📍 장치장 현황")
-        st.markdown(f"🏢 **{data.get('latest_location', '확인 불가')}**")
     
     st.markdown("---")
     st.subheader("📸 유니패스 조회 결과 캡처")
