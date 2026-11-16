@@ -29,9 +29,15 @@ st.set_page_config(page_title="포워딩 B/L & 양하조회 도우미", page_ico
 def load_contacts():
     if os.path.exists("contacts.csv"):
         try:
-            return pd.read_csv("contacts.csv", encoding="utf-8-sig")
+            df = pd.read_csv("contacts.csv", encoding="utf-8-sig")
         except:
-            return pd.read_csv("contacts.csv", encoding="cp949")
+            df = pd.read_csv("contacts.csv", encoding="cp949")
+        
+        # 업체명이 같은 중복 데이터가 있으면 하나만 남기고 제거
+        if "업체명" in df.columns:
+            df = df.drop_duplicates(subset=["업체명"]).reset_index(drop=True)
+            
+        return df
     return pd.DataFrame(columns=["키워드", "구분", "업체명", "홈페이지", "전화번호"])
 
 def search_unipass(bl_no, bl_type):
@@ -114,16 +120,22 @@ def search_unipass(bl_no, bl_type):
             except:
                 page.keyboard.press("Enter")
             
-            # 5. 검색 결과 페이지 로딩 대기
+# 5. 검색 결과 페이지 로딩 대기
             page.wait_for_load_state("domcontentloaded", timeout=15000)
+            page.wait_for_timeout(2000) # 결과 테이블 렌더링 대기
             
-            # 6. M B/L인 경우 결과 목록에서 화물관리번호 링크 클릭하여 상세 페이지 진입
+            # 6. [핵심] M B/L인 경우 결과 목록에서 화물관리번호 링크 클릭하여 상세 페이지 진입
             if bl_type == "M B/L":
                 try:
-                    page.locator("table tr td a").first.click(timeout=3000)
+                    # 결과 테이블의 링크가 나타날 때까지 안전하게 대기 후 첫 번째 링크 클릭
+                    page.wait_for_selector("table tr td a", timeout=7000)
+                    page.locator("table tr td a").first.click()
+                    
+                    # 상세 페이지로 넘어갈 때까지 대기
                     page.wait_for_load_state("domcontentloaded", timeout=15000)
+                    page.wait_for_timeout(3000) # 상세 페이지 정보 렌더링 대기
                 except Exception as link_err:
-                    print(f"화물관리번호 링크 클릭 예외: {link_err}")
+                    print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
             # 7. 최종 상세 페이지 화면 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"], full_page=True)
