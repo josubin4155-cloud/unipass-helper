@@ -58,7 +58,9 @@ def search_unipass(bl_no, bl_type):
                 headless=True,
                 args=['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage', '--disable-extensions']
             )
-            page = browser.new_page()
+            
+            # [핵심 수정] PC 와이드 해상도(1920x1080)를 지정하여 레이아웃이 깨지지 않고 정상적으로 나오게 합니다.
+            page = browser.new_page(viewport={"width": 1920, "height": 1080})
             
             # 1. 유니패스 메인 페이지로 이동
             page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000, wait_until="domcontentloaded")
@@ -138,7 +140,7 @@ def search_unipass(bl_no, bl_type):
         result["error"] = f"조회 중 오류가 발생했습니다: {e}"
         
     return result
-
+    
 # 메인 UI 화면 구성
 st.title("🚢 포워딩 B/L & 양하조회 자동화 대시보드")
 st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선사/대리점/터미널 연락처와 컨테이너 번호를 보여줍니다.")
