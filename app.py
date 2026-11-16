@@ -234,7 +234,19 @@ def search_unipass(bl_no, bl_type):
                             result["terminal"] = val
             
             # 📦 국제 표준 컨테이너 번호 형식(앞 4자리 중 마지막이 U, J, Z + 숫자 7자리)만 정확히 추출
-            found_containers = re.findall(r'[A-Z]{3}[UJZ]\d{7}', body_text)
+            # 💡 검색한 MBL 번호가 포함된 상단 요약 테이블은 제외하고, 하단 결과 테이블 텍스트에서만 컨테이너 번호 추출!
+            valid_tables_text = ""
+            tables = page.locator("table").all()
+            for table in tables:
+                t_text = table.inner_text()
+                # 상단 검색 조건/입력 에코 영역 및 검색한 B/L 번호가 포함된 테이블은 스킵
+                if "M B/L" in t_text and "H B/L" in t_text:
+                    continue
+                if bl_no in t_text:
+                    continue
+                valid_tables_text += " " + t_text
+
+            found_containers = re.findall(r'[A-Z]{3}[UJZ]\d{7}', valid_tables_text)
             result["containers"] = list(set(found_containers))
                         
             browser.close()
