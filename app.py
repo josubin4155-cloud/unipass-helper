@@ -113,6 +113,7 @@ def search_unipass(bl_no, bl_type):
         "arrival_date": "확인 불가",
         "terminal": "확인 불가",
         "latest_location": "확인 불가",
+        "unipass_url": "https://unipass.customs.go.kr/csp/index.do",
         "containers": [],
         "screenshot_path": "unipass_screenshot.png",
         "raw_text": ""
@@ -174,6 +175,9 @@ def search_unipass(bl_no, bl_type):
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
+            # 현재 브라우저가 도달한 최종 결과 페이지 URL 확보 (사용자가 원한 바로 그 창의 링크!)
+            result["unipass_url"] = page.url
+
             # 7. 데이터가 완벽히 채워진 후 고화질 현재 화면 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
@@ -204,7 +208,7 @@ def search_unipass(bl_no, bl_type):
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
 
-            # 9. 실시간 장치장명 정밀 파싱 보강
+            # 9. 장치장 현황 정밀 파싱 보강 (테이블 셀 내부의 창고명/회사명 정확히 추출)[cite: 9, 10]
             try:
                 table_rows = page.locator("table tr").all()
                 for row in table_rows:
@@ -213,22 +217,30 @@ def search_unipass(bl_no, bl_type):
                         text = cell.inner_text().strip()
                         lines = [l.strip() for l in text.split('\n') if l.strip()]
                         for line in lines:
-                            if any(kw in line for kw in ["(주)", "창고", "터미널", "운송", "물류", "CY", "CFS", "항만", "운수", "스카이"]):
-                                result["latest_location"] = line
-                                break
+                            # 물류 회사명, 창고명 키워드가 포함된 경우 우선 선택
+                            if any(kw in line for kw in ["(주)", "창고", "터미널", "운송", "물류", "CY", "CFS", "항만", "운수", "해운", "공사", "부두", "국제"]):
+                                if result["latest_location"] == "확인 불가":
+                                    result["latest_location"] = line
+                                    break
+                            # 숫자 코드 바로 아랫줄인 경우
                             elif line.isdigit() and len(line) >= 5:
                                 idx = lines.index(line)
                                 if idx + 1 < len(lines):
                                     candidate = lines[idx + 1]
                                     if not any(u in candidate for u in ["KG", "GT", "톤", "일시", "-"]):
-                                        result["latest_location"] = candidate
-                                        break
+                                        if result["latest_location"] == "확인 불가":
+                                            result["latest_location"] = candidate
+                                            break
                         if result["latest_location"] != "확인 불가":
                             break
                     if result["latest_location"] != "확인 불가":
                         break
+                
+                # 만약 테이블에서 못 찾았으나 terminal 정보가 있다면 대체
+                if result["latest_location"] == "확인 불가" and result["terminal"] != "확인 불가":
+                    result["latest_location"] = result["terminal"]
             except Exception as loc_parse_err:
-                print(f"실시간 장치장명 파싱 중 오류: {loc_parse_err}")
+                print(f"장치장 현황 파싱 중 오류: {loc_parse_err}")
             
             found_containers = re.findall(r'[A-Z]{4}\d{7}', body_text)
             result["containers"] = list(set(found_containers))
@@ -281,7 +293,7 @@ if search_clicked:
             ("🚢", f"[{bl_no}] 화물을 향해 출항 준비 중..."),
             ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중..."),
             ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중..."),
-            ("📦", "컨테이너 번호와 실시간 장치장명을 말끔히 정리하는 중...")
+            ("📦", "컨테이너 번호와 장치장 현황을 말끔히 정리하는 중...")
         ]
         
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -341,12 +353,12 @@ if search_clicked:
                 else:
                     st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
                 
-                # 💡 왼쪽 컬럼 아래쪽에 추가된 유니패스 공식 조회 시스템 바로가기 틀
+                # 💡 왼쪽 컬럼 아래쪽에 AI가 조회한 유니패스 결과 페이지 링크 달기
                 st.markdown("")
                 with st.container(border=True):
-                    st.markdown("**🔗 유니패스 공식 조회 시스템**")
-                    st.write("유니패스 포털에서 직접 상세 내역을 조회할 수 있습니다.")
-                    st.link_button("🌐 유니패스(UNIPASS) 포털 바로가기", "https://unipass.customs.go.kr/csp/index.do", use_container_width=True)
+                    st.markdown("**🔗 AI가 조회한 유니패스 결과 화면**")
+                    st.write("방금 자동화로 조회·캡처한 유니패스 상세 페이지 링크입니다.")
+                    st.link_button("🌐 유니패스 조회 결과 페이지 열기", data["unipass_url"], use_container_width=True)
 
             with right_col:
                 st.subheader("📦 컨테이너 번호 (클릭하여 복사)")
@@ -357,7 +369,7 @@ if search_clicked:
                     st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
                 
                 st.markdown("")
-                st.subheader("📍 실시간 최신 장치장명")
+                st.subheader("📍 장치장 현황")
                 st.info(f"🏢 **{data['latest_location']}**")
             
             st.markdown("---")
