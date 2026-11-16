@@ -64,19 +64,20 @@ def search_unipass(bl_no, bl_type):
             # PC 와이드 해상도(1920x1080) 지정
             page = browser.new_page(viewport={"width": 1920, "height": 1080})
             
-            # 1. 유니패스 메인 페이지로 이동
-            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000, wait_until="domcontentloaded")
+            # 1. 유니패스 메인 페이지로 이동 (속도 최적화를 위해 domcontentloaded 즉시 진행)
+            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=20000, wait_until="domcontentloaded")
             
             # 2. 화물진행정보 영역의 'M B/L - H B/L' 라디오버튼 클릭
             try:
-                page.click("label:has-text('M B/L - H B/L')", timeout=3000)
+                page.click("label:has-text('M B/L - H B/L')", timeout=2000)
             except:
                 try:
-                    page.locator("input[value='MH']").click(force=True, timeout=3000)
+                    page.locator("input[value='MH']").click(force=True, timeout=2000)
                 except:
                     pass
             
-            page.wait_for_timeout(1000)
+            # 대기 시간 단축 (0.5초)
+            page.wait_for_timeout(500)
 
             # 3. M B/L 또는 H B/L 입력창에 번호 입력
             try:
@@ -92,21 +93,21 @@ def search_unipass(bl_no, bl_type):
             
             # 4. 조회 버튼 클릭
             try:
-                page.click("tr:has-text('M B/L') button, tr:has-text('B/L') button, #txtBlBtn, text='조회'", timeout=3000)
+                page.click("tr:has-text('M B/L') button, tr:has-text('B/L') button, #txtBlBtn, text='조회'", timeout=2000)
             except:
                 page.keyboard.press("Enter")
             
-            # 5. 검색 결과 페이지 로딩 대기
-            page.wait_for_load_state("domcontentloaded", timeout=15000)
-            page.wait_for_timeout(1500)
+            # 5. 검색 결과 페이지 로딩 대기 단축
+            page.wait_for_load_state("domcontentloaded", timeout=10000)
+            page.wait_for_timeout(800)
             
             # 6. M B/L인 경우 결과 목록에서 화물관리번호 링크 클릭하여 상세 페이지 진입
             if bl_type == "M B/L":
                 try:
-                    page.wait_for_selector("table tr td a", timeout=7000)
+                    page.wait_for_selector("table tr td a", timeout=5000)
                     page.locator("table tr td a").first.click()
-                    page.wait_for_load_state("domcontentloaded", timeout=15000)
-                    page.wait_for_timeout(1500)
+                    page.wait_for_load_state("domcontentloaded", timeout=10000)
+                    page.wait_for_timeout(800)
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
@@ -185,7 +186,6 @@ if search_clicked:
     if not bl_no:
         st.warning("B/L 번호를 입력해 주세요!")
     else:
-        # 💡 글씨 크기를 기본 본문 크기로 아담하게 줄였습니다!
         loading_placeholder = st.empty()
         
         loading_steps = [
@@ -202,7 +202,7 @@ if search_clicked:
             while not future.done():
                 emoji, msg = loading_steps[idx % len(loading_steps)]
                 loading_placeholder.markdown(f"⏳ {emoji} {msg}")
-                time.sleep(0.5)
+                time.sleep(0.3)  # 텍스트 전환 속도도 스피디하게 단축
                 idx += 1
                 
             data = future.result()
