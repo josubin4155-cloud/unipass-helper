@@ -149,17 +149,17 @@ def search_unipass(bl_no, bl_type):
             )
             
             page = browser.new_page(viewport={"width": 1920, "height": 1080})
-            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000, wait_until="domcontentloaded")
+            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=20000, wait_until="domcontentloaded")
             
             try:
-                page.click("label:has-text('M B/L - H B/L')", timeout=3000)
+                page.click("label:has-text('M B/L - H B/L')", timeout=2000)
             except:
                 try:
-                    page.locator("input[value='MH']").click(force=True, timeout=3000)
+                    page.locator("input[value='MH']").click(force=True, timeout=2000)
                 except:
                     pass
             
-            page.wait_for_timeout(1000)
+            page.wait_for_timeout(300)
 
             try:
                 if bl_type == "M B/L":
@@ -173,32 +173,34 @@ def search_unipass(bl_no, bl_type):
                     page.fill("input[name='hblNo']", bl_no)
             
             try:
-                page.click("tr:has-text('M B/L') button, tr:has-text('B/L') button, #txtBlBtn, text='조회'", timeout=3000)
+                page.click("tr:has-text('M B/L') button, tr:has-text('B/L') button, #txtBlBtn, text='조회'", timeout=2000)
             except:
                 page.keyboard.press("Enter")
             
-            page.wait_for_load_state("domcontentloaded", timeout=15000)
+            page.wait_for_load_state("domcontentloaded", timeout=10000)
             
             if bl_type == "M B/L":
                 try:
-                    page.wait_for_selector("table tr td a", timeout=7000)
+                    page.wait_for_selector("table tr td a", timeout=4000)
                     page.locator("table tr td a").first.click()
-                    page.wait_for_load_state("domcontentloaded", timeout=15000)
+                    page.wait_for_load_state("domcontentloaded", timeout=10000)
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
             try:
-                page.wait_for_selector("table tr td", timeout=15000)
+                page.wait_for_selector("table tr td", timeout=8000)
             except:
                 pass
             
-            for _ in range(30):
+            # ⚡ [속도 개선] '처리중' 상태가 사라지는지 빠르게 체크 (체크 간격 0.2초, 최대 약 3~4초로 단축)
+            for _ in range(15):
                 body_text = page.inner_text("body")
                 if "처리중" not in body_text:
                     break
-                time.sleep(0.5)
+                time.sleep(0.2)
             
-            page.wait_for_timeout(1500)
+            # 최소한의 렌더링 안정화 대기 (기존 1.5초 -> 300ms로 단축)
+            page.wait_for_timeout(300)
             
             page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
@@ -228,14 +230,13 @@ def search_unipass(bl_no, bl_type):
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
             
-            # 📦 안전하고 확실한 컨테이너 번호 추출 (입력한 B/L 번호와 완벽히 일치하는 항목만 정확히 제외)
+            # 📦 컨테이너 번호 추출 (입력한 B/L 번호 제외)
             found_containers = []
             tables = page.locator("table").all()
             for table in tables:
                 t_text = table.inner_text()
                 matches = re.findall(r'[A-Z]{3}[UJZ]\d{7}', t_text)
                 for m in matches:
-                    # 입력한 B/L 번호와 대소문자 관계없이 일치하면 제외
                     if m.upper() != bl_no.upper():
                         found_containers.append(m)
             
@@ -287,10 +288,10 @@ if search_clicked:
         loading_placeholder = st.empty()
         
         loading_steps = [
-            ("🚢", f"[{bl_no}] 목적지를 향해 출항 준비 중..."),
-            ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중...우다다..."),
-            ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중...쇽쇽..."),
-            ("📦", "컨테이너 번호와 물류 데이터를 말끔히 정리하는 중...")
+            ("🚢", f"[{bl_no}] 목적지를 향해 신속 출항 중..."),
+            ("🌊", "유니패스 서버로 빠르게 질주 중..."),
+            ("⚓", "물류 데이터를 빠르게 낚아채는 중..."),
+            ("📦", "정리 완료 직전...")
         ]
         
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -300,7 +301,7 @@ if search_clicked:
             while not future.done():
                 emoji, msg = loading_steps[idx % len(loading_steps)]
                 loading_placeholder.markdown(f"⏳ {emoji} {msg}")
-                time.sleep(0.5)
+                time.sleep(0.3)  # 로딩바 애니메이션 속도도 빠르게 조정
                 idx += 1
                 
             data = future.result()
@@ -354,27 +355,4 @@ if st.session_state["search_done"]:
                     st.write(f"☎️ **전화번호:** `{item.get('전화번호', '')}`")
                     homepage = str(item.get('홈페이지', ''))
                     if pd.notna(item.get('홈페이지')) and homepage.startswith("http"):
-                        st.link_button(f"🌐 {item.get('업체명', '')} 홈페이지 바로가기", homepage)
-        else:
-            st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
-
-    with right_col:
-        st.subheader("📦 컨테이너 번호")
-        if data.get("containers"):
-            for cntr in data["containers"]:
-                st.code(cntr, language=None)
-        else:
-            st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
-    
-    st.markdown("---")
-    st.subheader("📸 유니패스 조회 결과 캡처")
-    if os.path.exists(data.get("screenshot_path", "")):
-        with open(data["screenshot_path"], "rb") as file:
-            st.download_button(
-                label="📥 선명한 원본 캡처 이미지 다운로드 (.png)",
-                data=file,
-                file_name=f"UNIPASS_screenshot.png",
-                mime="image/png",
-                use_container_width=True
-            )
-        st.image(data["screenshot_path"], use_container_width=True)
+                        st.link_button(f"🌐 {item.get('업체명', '')} 홈페이지 바로가
