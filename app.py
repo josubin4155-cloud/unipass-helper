@@ -162,7 +162,8 @@ with st.sidebar:
 
 col_type, col_input, col_btn = st.columns([1.2, 3, 1])
 with col_type:
-    bl_type = st.selectbox("B/L 구분", ["H B/L", "M B/L"])
+    # M B/L이 기본값으로 먼저 선택되도록 순서 변경!
+    bl_type = st.selectbox("B/L 구분", ["M B/L", "H B/L"])
 with col_input:
     bl_no = st.text_input("B/L 번호 입력", placeholder="예: HDMU1234567").strip().upper()
 with col_btn:
