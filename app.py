@@ -26,7 +26,7 @@ def check_password():
 check_password()
 # --- 비밀번호 확인 기능 끝 ---
 
-st.set_page_config(page_title="포워딩 B/L & 양하조회 도우미", page_icon="🚢", layout="wide")
+st.set_page_config(page_title="포워딩 B/L & 양하조회 대시보드", page_icon="🚢", layout="wide")
 
 def load_contacts():
     if os.path.exists("contacts.csv"):
@@ -185,7 +185,7 @@ if search_clicked:
     if not bl_no:
         st.warning("B/L 번호를 입력해 주세요!")
     else:
-        # 💡 이모티콘과 문구가 부드럽게 롤링되는 감각적인 동적 로딩 효과
+        # 💡 글씨 크기를 기본 본문 크기로 아담하게 줄였습니다!
         loading_placeholder = st.empty()
         
         loading_steps = [
@@ -201,13 +201,13 @@ if search_clicked:
             idx = 0
             while not future.done():
                 emoji, msg = loading_steps[idx % len(loading_steps)]
-                loading_placeholder.markdown(f"### {emoji} {msg}")
+                loading_placeholder.markdown(f"⏳ {emoji} {msg}")
                 time.sleep(0.5)
                 idx += 1
                 
             data = future.result()
         
-        loading_placeholder.empty()  # 로딩 끝나면 깔끔하게 지우기
+        loading_placeholder.empty()
 
         if not data["success"]:
             st.error(data["error"])
