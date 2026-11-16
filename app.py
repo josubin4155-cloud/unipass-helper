@@ -55,43 +55,55 @@ def search_unipass(bl_no, bl_type):
             page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=60000)
             page.wait_for_load_state("networkidle")
             
-            # 2. B/L 번호 입력창을 유연하게 찾아 입력
-            input_found = False
-            selectors_to_try = [
-                "input[placeholder*='B/L']",
-                "input[title*='B/L']",
-                "input[name*='blNo']",
-                "input[id*='blNo']",
-                "input[type='text']"
-            ]
-            
-            for sel in selectors_to_try:
+            # 2. M B/L - H B/L 구분 라디오버튼 선택
+            try:
+                page.click("label:has-text('M B/L - H B/L')", timeout=3000)
+            except:
                 try:
-                    page.locator(sel).first.fill(bl_no, timeout=3000)
-                    input_found = True
-                    break
+                    page.click("input[value='MH']", timeout=3000)
                 except:
-                    continue
+                    pass
             
-            if not input_found:
-                result["error"] = "유니패스 페이지에서 B/L 입력창을 찾지 못했습니다."
-                browser.close()
-                return result
+            # 3. M B/L은 왼쪽 칸, H B/L은 오른쪽 칸에 번호 입력
+            try:
+                inputs = page.locator("input[type='text']")
+                if bl_type == "M B/L":
+                    # M B/L (왼쪽 입력창)
+                    inputs.first.fill(bl_no)
+                else:
+                    # H B/L (오른쪽 입력창 - 보통 두 번째 텍스트 박스)
+                    inputs.nth(1).fill(bl_no)
+            except Exception as e:
+                # 예외 시 대체 셀렉터로 입력 시도
+                if bl_type == "M B/L":
+                    page.fill("input[name*='mblNo']", bl_no)
+                else:
+                    page.fill("input[name*='hblNo']", bl_no)
             
-            # 3. 조회 버튼 클릭
+            # 4. 조회 버튼 클릭
             try:
                 page.click("text=조회", timeout=3000)
             except:
                 try:
-                    page.click("button:has-text('조회')", timeout=3000)
+                    page.click("#txtBlBtn", timeout=3000)
                 except:
                     page.keyboard.press("Enter")
             
-            # 4. 상세 조회 결과 페이지 로딩 대기
+            # 5. 검색 결과 페이지 로딩 대기
             page.wait_for_load_state("networkidle")
             page.wait_for_timeout(3000)
             
-            # 5. 결과 화면 캡처 및 텍스트 추출
+            # 6. [핵심] M B/L인 경우 결과 목록에서 화물관리번호 링크 클릭하여 상세 페이지 진입
+            if bl_type == "M B/L":
+                try:
+                    # 결과 테이블 안의 첫 번째 화물관리번호 링크 클릭
+                    page.locator("table tr td a").first.click(timeout=5000)
+                    page.wait_for_load_state("networkidle")
+                    page.wait_for_timeout(3000)
+                except Exception as link_err:
+                    print(f"화물관리번호 링크 클릭 중 예외 (이미 상세페이지일 수 있음): {link_err}")
+            
+            # 7. 최종 상세 페이지 화면 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"], full_page=True)
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
@@ -101,7 +113,7 @@ def search_unipass(bl_no, bl_type):
                 browser.close()
                 return result
 
-            # 6. 테이블 정보 파싱 (선사/대리점/터미널 추출)
+            # 8. 상세 테이블 정보 파싱 (선사/대리점/터미널 추출)
             rows = page.locator("table tr").all()
             for row in rows:
                 cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
