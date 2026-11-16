@@ -170,7 +170,7 @@ def search_unipass(bl_no, bl_type):
                     page.wait_for_selector("table tr td a", timeout=7000)
                     page.locator("table tr td a").first.click()
                     page.wait_for_load_state("domcontentloaded", timeout=15000)
-                    page.wait_for_timeout(2000)  # 데이터 렌더링 안정 대기
+                    page.wait_for_timeout(2000)
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
@@ -204,29 +204,29 @@ def search_unipass(bl_no, bl_type):
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
 
-            # 9. 실시간 장치장명(가장 최근 정보: 링크 바로 아래 텍스트) 추출 파싱[cite: 9, 10]
+            # 9. 실시간 장치장명 추출 파싱 (스마트 보강 버전)[cite: 9, 10]
             try:
-                headers = [th.inner_text().strip() for th in page.locator("table th").all()]
-                target_col_idx = -1
-                for idx, h in enumerate(headers):
-                    if "장치장" in h:
-                        target_col_idx = idx
+                table_rows = page.locator("table tr").all()
+                for row in table_rows:
+                    tds = row.locator("td").all()
+                    for td in tds:
+                        cell_text = td.inner_text().strip()
+                        lines = [l.strip() for l in cell_text.split('\n') if l.strip()]
+                        for idx, line in enumerate(lines):
+                            # 숫자로 된 코드 바로 아래 줄인 경우
+                            if line.isdigit() and len(line) >= 5 and idx + 1 < len(lines):
+                                candidate = lines[idx + 1]
+                                if not any(unit in candidate for unit in ["KG", "GT", "톤", "일시"]):
+                                    result["latest_location"] = candidate
+                                    break
+                            # 혹은 물류/창고 관련 키워드가 포함된 텍스트인 경우
+                            elif any(kw in line for keyword in ["(주)", "창고", "터미널", "운송", "물류", "CY", "CFS", "항만"] for kw in [keyword]):
+                                result["latest_location"] = line
+                                break
+                        if result["latest_location"] != "확인 불가":
+                            break
+                    if result["latest_location"] != "확인 불가":
                         break
-                
-                if target_col_idx != -1:
-                    table_rows = page.locator("table tr").all()
-                    for row in table_rows:
-                        tds = row.locator("td").all()
-                        if len(tds) > target_col_idx:
-                            cell_text = tds[target_col_idx].inner_text().strip()
-                            lines = [l.strip() for l in cell_text.split('\n') if l.strip()]
-                            # 첫 줄은 코드(링크), 둘째 줄이 장치장명 (예: (주)스카이국제운송)[cite: 9, 10]
-                            if len(lines) >= 2:
-                                result["latest_location"] = lines[1]
-                                break
-                            elif len(lines) == 1 and not lines[0].isdigit():
-                                result["latest_location"] = lines[0]
-                                break
             except Exception as loc_parse_err:
                 print(f"실시간 장치장명 파싱 중 오류: {loc_parse_err}")
             
