@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd
 from playwright.sync_api import sync_playwright
 import re
+import time
 
 # --- 비밀번호 확인 기능 시작 ---
 def check_password():
@@ -74,7 +75,7 @@ def search_unipass(bl_no, bl_type):
                 except:
                     pass
             
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(1000)
 
             # 3. M B/L 또는 H B/L 입력창에 번호 입력
             try:
@@ -96,7 +97,7 @@ def search_unipass(bl_no, bl_type):
             
             # 5. 검색 결과 페이지 로딩 대기
             page.wait_for_load_state("domcontentloaded", timeout=15000)
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(1500)
             
             # 6. M B/L인 경우 결과 목록에서 화물관리번호 링크 클릭하여 상세 페이지 진입
             if bl_type == "M B/L":
@@ -104,7 +105,7 @@ def search_unipass(bl_no, bl_type):
                     page.wait_for_selector("table tr td a", timeout=7000)
                     page.locator("table tr td a").first.click()
                     page.wait_for_load_state("domcontentloaded", timeout=15000)
-                    page.wait_for_timeout(2000)
+                    page.wait_for_timeout(1500)
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
@@ -167,7 +168,8 @@ with st.sidebar:
     st.dataframe(contacts_df[["구분", "업체명", "전화번호"]], hide_index=True)
     st.info("💡 파일을 업로드하면 즉시 DB에 반영됩니다.")
 
-col_type, col_input, col_btn = st.columns([1.2, 3, 1])
+# 💡 버튼 글자가 짤리지 않도록 열 비율을 넉넉하게 조정했습니다 ([1, 2.5, 1.3])
+col_type, col_input, col_btn = st.columns([1, 2.5, 1.3])
 with col_type:
     bl_type = st.selectbox("B/L 구분", ["M B/L", "H B/L"])
 with col_input:
@@ -183,8 +185,18 @@ if search_clicked:
     if not bl_no:
         st.warning("B/L 번호를 입력해 주세요!")
     else:
-        with st.spinner(f"유니패스에서 [{bl_no}] 화물 정보를 조회 중입니다..."):
+        with st.status(f"🚢 [{bl_no}] 화물을 향해 출항 준비 중...", expanded=True) as status:
+            st.write("🌊 파도를 헤치고 유니패스 서버로 전력 질주 중...")
+            time.sleep(0.6)
+            
+            st.write("⚓ 선사, 대리점, 입항일 정보를 낚아채는 중...")
             data = search_unipass(bl_no, bl_type)
+            time.sleep(0.4)
+            
+            if data["success"]:
+                status.update(label=f"🎉 성공! [{bl_no}] 화물 포획 완료!", state="complete", expanded=False)
+            else:
+                status.update(label="⚠️ 조회 실패: 정보를 찾지 못했습니다.", state="error", expanded=True)
             
         if not data["success"]:
             st.error(data["error"])
@@ -195,3 +207,57 @@ if search_clicked:
             
             # 상단 3개 카드: 선사/항공사, 선박대리점, 입항일
             c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric("선사 / 항공사", data["carrier"])
+            with c2:
+                st.metric("선박대리점", data["agency"])
+            with c3:
+                st.metric("입항일", data["arrival_date"])
+                
+            st.markdown("---")
+            
+            left_col, right_col = st.columns([1.2, 1])
+            
+            with left_col:
+                st.subheader("📞 매칭된 선사 및 터미널 연락처")
+                search_target_text = f"{data['carrier']} {data['agency']} {data['terminal']} {data['raw_text']}"
+                matched_rows = []
+                seen_companies = set()
+                
+                for _, row in contacts_df.iterrows():
+                    keyword = str(row["키워드"]).strip()
+                    company = str(row["업체명"]).strip()
+                    if keyword and keyword in search_target_text and company not in seen_companies:
+                        matched_rows.append(row)
+                        seen_companies.add(company)
+                
+                if matched_rows:
+                    for item in matched_rows:
+                        with st.container(border=True):
+                            st.markdown(f"**[{item['구분']}] {item['업체명']}**")
+                            st.write(f"☎️ **전화번호:** `{item['전화번호']}`")
+                            if pd.notna(item['홈페이지']) and str(item['홈페이지']).startswith("http"):
+                                st.link_button(f"🌐 {item['업체명']} 홈페이지 바로가기", item['홈페이지'])
+                else:
+                    st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
+
+            with right_col:
+                st.subheader("📦 컨테이너 번호 (클릭하여 복사)")
+                if data["containers"]:
+                    for cntr in data["containers"]:
+                        st.code(cntr, language=None)
+                else:
+                    st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
+            
+            st.markdown("---")
+            st.subheader("📸 유니패스 조회 결과 캡처")
+            if os.path.exists(data["screenshot_path"]):
+                with open(data["screenshot_path"], "rb") as file:
+                    st.download_button(
+                        label="📥 선명한 원본 캡처 이미지 다운로드 (.png)",
+                        data=file,
+                        file_name=f"UNIPASS_{bl_no}.png",
+                        mime="image/png",
+                        use_container_width=True
+                    )
+                st.image(data["screenshot_path"], use_container_width=True)
