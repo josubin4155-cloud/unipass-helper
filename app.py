@@ -117,7 +117,7 @@ def search_unipass(bl_no, bl_type):
                 browser.close()
                 return result
 
-            # 8. 상세 테이블 정보 파싱 (중량 KG 데이터가 터미널 자리에 들어오지 못하게 예외 필터 추가)
+            # 8. 상세 테이블 정보 파싱 (연락처 매칭용 데이터 수집)
             rows = page.locator("table tr").all()
             for row in rows:
                 cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
@@ -130,7 +130,6 @@ def search_unipass(bl_no, bl_type):
                             result["agency"] = cells[i + 1]
                     elif ("터미널" in cell or "장치장" in cell) and i + 1 < len(cells):
                         val = cells[i + 1]
-                        # 무게(KG, 톤)나 숫자로만 된 이상한 값은 터미널명으로 인정하지 않음
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
             
@@ -188,17 +187,9 @@ if search_clicked:
                 st.image(data["screenshot_path"], caption="유니패스 조회 화면 캡처")
         else:
             st.success(f"✅ [{bl_no}] 조회가 완료되었습니다!")
-            
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.metric("선사 / 항공사", data["carrier"])
-            with c2:
-                st.metric("선박대리점", data["agency"])
-            with c3:
-                st.metric("장치장 (터미널)", data["terminal"])
-                
             st.markdown("---")
             
+            # 상단 거슬리던 메트릭 카드를 완전히 제거하고 바로 핵심 정보(연락처 및 컨테이너) 영역으로 연결합니다.
             left_col, right_col = st.columns([1.2, 1])
             
             with left_col:
