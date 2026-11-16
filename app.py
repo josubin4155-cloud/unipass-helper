@@ -75,7 +75,7 @@ def search_unipass(bl_no, bl_type):
             
             page.wait_for_timeout(2000)
 
-            # 3. M B/L(왼쪽) 또는 H B/L(오른쪽) 입력창에 번호 입력
+            # 3. M B/L 또는 H B/L 입력창에 번호 입력
             try:
                 if bl_type == "M B/L":
                     page.locator("input[name*='mblNo'], input[id*='mblNo']").first.fill(bl_no)
@@ -107,7 +107,7 @@ def search_unipass(bl_no, bl_type):
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
-            # 7. 고화질 현재 화면 캡처 (찌그러짐 방지) 및 텍스트 추출
+            # 7. 고화질 현재 화면 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
@@ -117,17 +117,22 @@ def search_unipass(bl_no, bl_type):
                 browser.close()
                 return result
 
-            # 8. 상세 테이블 정보 파싱
+            # 8. 상세 테이블 정보 파싱 (중량 KG 데이터가 터미널 자리에 들어오지 못하게 예외 필터 추가)
             rows = page.locator("table tr").all()
             for row in rows:
                 cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
                 for i, cell in enumerate(cells):
                     if "선사/항공사" in cell and i + 1 < len(cells):
-                        result["carrier"] = cells[i + 1]
+                        if "확인 불가" in result["carrier"] or not result["carrier"]:
+                            result["carrier"] = cells[i + 1]
                     elif "선박대리점" in cell and i + 1 < len(cells):
-                        result["agency"] = cells[i + 1]
-                    elif "터미널" in cell and i + 1 < len(cells):
-                        result["terminal"] = cells[i + 1]
+                        if "확인 불가" in result["agency"] or not result["agency"]:
+                            result["agency"] = cells[i + 1]
+                    elif ("터미널" in cell or "장치장" in cell) and i + 1 < len(cells):
+                        val = cells[i + 1]
+                        # 무게(KG, 톤)나 숫자로만 된 이상한 값은 터미널명으로 인정하지 않음
+                        if val and "KG" not in val and "톤" not in val and len(val) < 30:
+                            result["terminal"] = val
             
             found_containers = re.findall(r'[A-Z]{4}\d{7}', body_text)
             result["containers"] = list(set(found_containers))
