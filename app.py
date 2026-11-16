@@ -204,25 +204,25 @@ def search_unipass(bl_no, bl_type):
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
 
-            # 9. 실시간 장치장명 추출 파싱 (스마트 보강 버전)[cite: 9, 10]
+            # 9. 실시간 장치장명 정밀 파싱 보강
             try:
                 table_rows = page.locator("table tr").all()
                 for row in table_rows:
-                    tds = row.locator("td").all()
-                    for td in tds:
-                        cell_text = td.inner_text().strip()
-                        lines = [l.strip() for l in cell_text.split('\n') if l.strip()]
-                        for idx, line in enumerate(lines):
-                            # 숫자로 된 코드 바로 아래 줄인 경우
-                            if line.isdigit() and len(line) >= 5 and idx + 1 < len(lines):
-                                candidate = lines[idx + 1]
-                                if not any(unit in candidate for unit in ["KG", "GT", "톤", "일시"]):
-                                    result["latest_location"] = candidate
-                                    break
-                            # 혹은 물류/창고 관련 키워드가 포함된 텍스트인 경우
-                            elif any(kw in line for keyword in ["(주)", "창고", "터미널", "운송", "물류", "CY", "CFS", "항만"] for kw in [keyword]):
+                    cells = row.locator("td").all()
+                    for cell in cells:
+                        text = cell.inner_text().strip()
+                        lines = [l.strip() for l in text.split('\n') if l.strip()]
+                        for line in lines:
+                            if any(kw in line for kw in ["(주)", "창고", "터미널", "운송", "물류", "CY", "CFS", "항만", "운수", "스카이"]):
                                 result["latest_location"] = line
                                 break
+                            elif line.isdigit() and len(line) >= 5:
+                                idx = lines.index(line)
+                                if idx + 1 < len(lines):
+                                    candidate = lines[idx + 1]
+                                    if not any(u in candidate for u in ["KG", "GT", "톤", "일시", "-"]):
+                                        result["latest_location"] = candidate
+                                        break
                         if result["latest_location"] != "확인 불가":
                             break
                     if result["latest_location"] != "확인 불가":
@@ -340,6 +340,13 @@ if search_clicked:
                                 st.link_button(f"🌐 {item['업체명']} 홈페이지 바로가기", item['홈페이지'])
                 else:
                     st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
+                
+                # 💡 왼쪽 컬럼 아래쪽에 추가된 유니패스 공식 조회 시스템 바로가기 틀
+                st.markdown("")
+                with st.container(border=True):
+                    st.markdown("**🔗 유니패스 공식 조회 시스템**")
+                    st.write("유니패스 포털에서 직접 상세 내역을 조회할 수 있습니다.")
+                    st.link_button("🌐 유니패스(UNIPASS) 포털 바로가기", "https://unipass.customs.go.kr/csp/index.do", use_container_width=True)
 
             with right_col:
                 st.subheader("📦 컨테이너 번호 (클릭하여 복사)")
