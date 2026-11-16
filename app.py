@@ -45,6 +45,7 @@ def search_unipass(bl_no, bl_type):
         "error": "",
         "carrier": "확인 불가",
         "agency": "확인 불가",
+        "arrival_date": "확인 불가",
         "terminal": "확인 불가",
         "containers": [],
         "screenshot_path": "unipass_screenshot.png",
@@ -117,7 +118,7 @@ def search_unipass(bl_no, bl_type):
                 browser.close()
                 return result
 
-            # 8. 상세 테이블 정보 파싱 (연락처 매칭용 데이터 수집)
+            # 8. 상세 테이블 정보 파싱 (선사, 대리점, 입항일, 터미널 추출)
             rows = page.locator("table tr").all()
             for row in rows:
                 cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
@@ -128,6 +129,10 @@ def search_unipass(bl_no, bl_type):
                     elif "선박대리점" in cell and i + 1 < len(cells):
                         if "확인 불가" in result["agency"] or not result["agency"]:
                             result["agency"] = cells[i + 1]
+                    elif "입항일" in cell and i + 1 < len(cells):
+                        val = cells[i + 1]
+                        if val and len(val) < 25:
+                            result["arrival_date"] = val
                     elif ("터미널" in cell or "장치장" in cell) and i + 1 < len(cells):
                         val = cells[i + 1]
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
@@ -146,7 +151,7 @@ def search_unipass(bl_no, bl_type):
 
 # 메인 UI 화면 구성
 st.title("🚢 포워딩 B/L & 양하조회 자동화 대시보드")
-st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선사/대리점/터미널 연락처와 컨테이너 번호를 보여줍니다.")
+st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선사/대리점/입항일 정보와 연락처, 컨테이너 번호를 보여줍니다.")
 
 with st.sidebar:
     st.header("📋 등록된 선사/터미널 DB")
@@ -187,9 +192,18 @@ if search_clicked:
                 st.image(data["screenshot_path"], caption="유니패스 조회 화면 캡처")
         else:
             st.success(f"✅ [{bl_no}] 조회가 완료되었습니다!")
+            
+            # 상단 3개 카드: 선사/항공사, 선박대리점, 입항일
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric("선사 / 항공사", data["carrier"])
+            with c2:
+                st.metric("선박대리점", data["agency"])
+            with c3:
+                st.metric("입항일", data["arrival_date"])
+                
             st.markdown("---")
             
-            # 상단 거슬리던 메트릭 카드를 완전히 제거하고 바로 핵심 정보(연락처 및 컨테이너) 영역으로 연결합니다.
             left_col, right_col = st.columns([1.2, 1])
             
             with left_col:
@@ -215,23 +229,4 @@ if search_clicked:
                 else:
                     st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
 
-            with right_col:
-                st.subheader("📦 컨테이너 번호 (클릭하여 복사)")
-                if data["containers"]:
-                    for cntr in data["containers"]:
-                        st.code(cntr, language=None)
-                else:
-                    st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
-            
-            st.markdown("---")
-            st.subheader("📸 유니패스 조회 결과 캡처")
-            if os.path.exists(data["screenshot_path"]):
-                with open(data["screenshot_path"], "rb") as file:
-                    st.download_button(
-                        label="📥 선명한 원본 캡처 이미지 다운로드 (.png)",
-                        data=file,
-                        file_name=f"UNIPASS_{bl_no}.png",
-                        mime="image/png",
-                        use_container_width=True
-                    )
-                st.image(data["screenshot_path"], use_container_width=True)
+            with right_col
