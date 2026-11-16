@@ -26,7 +26,7 @@ def check_password():
 check_password()
 # --- 비밀번호 확인 기능 끝 ---
 
-st.set_page_config(page_title="FNH LOGISTICS - B/L & 양하조회 대시보드", page_icon="🚢", layout="wide")
+st.set_page_config(page_title="FNH LOGISTICS - B/L 대시보드", page_icon="🚢", layout="wide")
 
 # 🎨 [FNH 로지스틱스 브랜드 및 글씨 크기 커스텀 CSS 적용]
 st.markdown("""
@@ -43,14 +43,14 @@ st.markdown("""
         letter-spacing: -0.5px;
     }
     
-    /* 섹션 제목(선사 및 터미널 연락처, 컨테이너 번호 등) 크기 키우기 */
+    /* 섹션 제목 크기 */
     h3 {
         color: #1e293b !important;
         font-weight: 700 !important;
         font-size: 22px !important;
     }
     
-    /* 상단 요약 메트릭 카드 디자인 (화이트 카드 + 입체 테두리) */
+    /* 상단 요약 메트릭 카드 디자인 */
     div[data-testid="stMetric"] {
         background-color: #ffffff;
         padding: 18px 20px;
@@ -58,19 +58,17 @@ st.markdown("""
         border: 1px solid #e2e8f0;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     }
-    /* 메트릭 라벨(선사/항공사, 선박대리점, 입항일) 크기 조정 */
     div[data-testid="stMetric"] label {
         color: #64748b !important;
         font-weight: 600 !important;
         font-size: 15px !important;
     }
-    /* 메트릭 값(화동해운 주식회사 등) 크기를 연락처 내용 크기 수준으로 아담하게 조절 */
     div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
         color: #0f172a !important;
         font-size: 20px !important;
     }
     
-    /* 🔍 유니패스 조회 버튼 (FNH 로고 포인트 레드 적용) */
+    /* 🔍 유니패스 조회 버튼 (포인트 레드) */
     button[kind="primary"] {
         background-color: #e11d48 !important;
         border-color: #e11d48 !important;
@@ -98,7 +96,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 💡 세션 상태 초기화 (다운로드 시 초기화 방지)
+# 💡 세션 상태 초기화
 if "search_done" not in st.session_state:
     st.session_state["search_done"] = False
 if "search_data" not in st.session_state:
@@ -109,8 +107,16 @@ def load_contacts():
         try:
             df = pd.read_csv("contacts.csv", encoding="utf-8-sig")
         except:
-            df = pd.read_csv("contacts.csv", encoding="cp949")
+            try:
+                df = pd.read_csv("contacts.csv", encoding="cp949")
+            except:
+                df = pd.DataFrame(columns=["키워드", "구분", "업체명", "홈페이지", "전화번호"])
         
+        required_cols = ["키워드", "구분", "업체명", "홈페이지", "전화번호"]
+        for col in required_cols:
+            if col not in df.columns:
+                df[col] = ""
+                
         if "업체명" in df.columns:
             df = df.drop_duplicates(subset=["업체명"]).reset_index(drop=True)
             
@@ -137,13 +143,9 @@ def search_unipass(bl_no, bl_type):
                 args=['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage', '--disable-extensions']
             )
             
-            # PC 와이드 해상도(1920x1080) 지정
             page = browser.new_page(viewport={"width": 1920, "height": 1080})
-            
-            # 1. 유니패스 메인 페이지로 이동
             page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000, wait_until="domcontentloaded")
             
-            # 2. 화물진행정보 영역의 'M B/L - H B/L' 라디오버튼 클릭
             try:
                 page.click("label:has-text('M B/L - H B/L')", timeout=3000)
             except:
@@ -154,7 +156,6 @@ def search_unipass(bl_no, bl_type):
             
             page.wait_for_timeout(1000)
 
-            # 3. M B/L 또는 H B/L 입력창에 번호 입력
             try:
                 if bl_type == "M B/L":
                     page.locator("input[name*='mblNo'], input[id*='mblNo']").first.fill(bl_no)
@@ -166,27 +167,26 @@ def search_unipass(bl_no, bl_type):
                 else:
                     page.fill("input[name='hblNo']", bl_no)
             
-            # 4. 조회 버튼 클릭
             try:
                 page.click("tr:has-text('M B/L') button, tr:has-text('B/L') button, #txtBlBtn, text='조회'", timeout=3000)
             except:
                 page.keyboard.press("Enter")
             
-            # 5. 검색 결과 페이지 로딩 대기
+            # ⏳ 로딩 및 데이터 렌더링을 확실히 기다리도록 대기 시간 넉넉히 확보 (4초)
             page.wait_for_load_state("domcontentloaded", timeout=15000)
-            page.wait_for_timeout(2000)
+            page.wait_for_timeout(4000)
             
-            # 6. M B/L인 경우 결과 목록에서 화물관리번호 링크 클릭하여 상세 페이지 진입
             if bl_type == "M B/L":
                 try:
                     page.wait_for_selector("table tr td a", timeout=7000)
                     page.locator("table tr td a").first.click()
                     page.wait_for_load_state("domcontentloaded", timeout=15000)
-                    page.wait_for_timeout(2000)
+                    # 상세 페이지 진입 후 데이터가 꽉 채워질 때까지 추가 대기 (4초)
+                    page.wait_for_timeout(4000)
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
-            # 7. 데이터가 완벽히 채워진 후 고화질 현재 화면 캡처 및 텍스트 추출
+            # 모든 로딩이 완료된 시점에 화면 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
@@ -196,7 +196,6 @@ def search_unipass(bl_no, bl_type):
                 browser.close()
                 return result
 
-            # 8. 상세 테이블 정보 파싱 (선사, 대리점, 입항일, 터미널 추출)
             rows = page.locator("table tr").all()
             for row in rows:
                 cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
@@ -228,7 +227,7 @@ def search_unipass(bl_no, bl_type):
     return result
 
 # 메인 UI 화면 구성
-st.title("🚢 FNH LOGISTICS - B/L & 양하조회 대시보드")
+st.title("🚢 FNH LOGISTICS B/L 대시보드")
 st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선사/대리점/입항일 정보와 연락처, 컨테이너 번호를 보여줍니다.")
 
 with st.sidebar:
@@ -242,7 +241,8 @@ with st.sidebar:
         st.rerun()
 
     contacts_df = load_contacts()
-    st.dataframe(contacts_df[["구분", "업체명", "전화번호"]], hide_index=True)
+    display_cols = [col for col in ["구분", "업체명", "전화번호"] if col in contacts_df.columns]
+    st.dataframe(contacts_df[display_cols], hide_index=True)
     st.info("💡 파일을 업로드하면 즉시 DB에 반영됩니다.")
 
 col_type, col_input, col_btn = st.columns([1, 2.5, 1.3])
@@ -265,8 +265,8 @@ if search_clicked:
         
         loading_steps = [
             ("🚢", f"[{bl_no}] 화물을 향해 출항 준비 중..."),
-            ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중...우다다..."),
-            ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중...쇽쇽..."),
+            ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중..."),
+            ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중..."),
             ("📦", "컨테이너 번호와 물류 데이터를 말끔히 정리하는 중...")
         ]
         
@@ -293,7 +293,7 @@ if search_clicked:
             st.session_state["search_done"] = True
             st.session_state["search_data"] = data
 
-# 💡 세션에 저장된 결과 출력 (다시 조회 버튼을 누르기 전까지 화면 유지)
+# 💡 세션에 저장된 결과 출력
 if st.session_state["search_done"]:
     data = st.session_state["search_data"]
     st.success(f"✅ 조회가 완료되었습니다!")
@@ -318,8 +318,8 @@ if st.session_state["search_done"]:
         seen_companies = set()
         
         for _, row in contacts_df.iterrows():
-            keyword = str(row["키워드"]).strip()
-            company = str(row["업체명"]).strip()
+            keyword = str(row.get("키워드", "")).strip()
+            company = str(row.get("업체명", "")).strip()
             if keyword and keyword in search_target_text and company not in seen_companies:
                 matched_rows.append(row)
                 seen_companies.add(company)
@@ -327,10 +327,11 @@ if st.session_state["search_done"]:
         if matched_rows:
             for item in matched_rows:
                 with st.container(border=True):
-                    st.markdown(f"**[{item['구분']}] {item['업체명']}**")
-                    st.write(f"☎️ **전화번호:** `{item['전화번호']}`")
-                    if pd.notna(item['홈페이지']) and str(item['홈페이지']).startswith("http"):
-                        st.link_button(f"🌐 {item['업체명']} 홈페이지 바로가기", item['홈페이지'])
+                    st.markdown(f"**[{item.get('구분', '')}] {item.get('업체명', '')}**")
+                    st.write(f"☎️ **전화번호:** `{item.get('전화번호', '')}`")
+                    homepage = str(item.get('홈페이지', ''))
+                    if pd.notna(item.get('홈페이지')) and homepage.startswith("http"):
+                        st.link_button(f"🌐 {item.get('업체명', '')} 홈페이지 바로가기", homepage)
         else:
             st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
 
