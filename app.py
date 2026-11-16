@@ -235,20 +235,21 @@ def search_unipass(bl_no, bl_type):
             
             # 📦 국제 표준 컨테이너 번호 형식(앞 4자리 중 마지막이 U, J, Z + 숫자 7자리)만 정확히 추출
             # 💡 검색한 MBL 번호가 포함된 상단 요약 테이블은 제외하고, 하단 결과 테이블 텍스트에서만 컨테이너 번호 추출!
-            valid_tables_text = ""
+            # 💡 [핵심 수정] '컨테이너' 단어가 포함된 전용 테이블에서만 표준 규격 번호 추출 (MBL 혼동 원천 차단)
+            # 💡 [핵심 수정] '컨테이너' 단어가 포함된 전용 테이블에서만 표준 규격 번호 추출 (MBL 혼동 원천 차단)
+            found_containers = []
             tables = page.locator("table").all()
             for table in tables:
                 t_text = table.inner_text()
-                # 상단 검색 조건/입력 에코 영역 및 검색한 B/L 번호가 포함된 테이블은 스킵
-                if "M B/L" in t_text and "H B/L" in t_text:
-                    continue
-                if bl_no in t_text:
-                    continue
-                valid_tables_text += " " + t_text
+                if "컨테이너" in t_text:
+                    matches = re.findall(r'[A-Z]{3}[UJZ]\d{7}', t_text)
+                    for m in matches:
+                        if m != bl_no:
+                            found_containers.append(m)
+            
+            result["containers"] = list(set(found_containers))
 
-            # 💡 [수정된 부분] 페이지 전체에서 컨테이너 형식을 찾되, 입력한 B/L 번호와 정확히 일치하는 것만 목록에서 제외!
-            found_containers = re.findall(r'[A-Z]{3}[UJZ]\d{7}', valid_tables_text)
-            result["containers"] = list(set([c for c in found_containers if c != bl_no]))
+           
             browser.close()
             result["success"] = True
             
