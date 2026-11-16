@@ -13,7 +13,7 @@ def check_password():
         st.session_state["password_correct"] = False
 
     if not st.session_state["password_correct"]:
-        st.title("🔒 B/L 조회 시스템")
+        st.title("🔒 화물 정보 조회 시스템")
         pwd = st.text_input("접속 비밀번호를 입력하세요", type="password")
         if st.button("확인"):
             if pwd == st.secrets["APP_PASSWORD"]:
