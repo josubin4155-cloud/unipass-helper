@@ -33,7 +33,6 @@ def load_contacts():
         except:
             df = pd.read_csv("contacts.csv", encoding="cp949")
         
-        # 업체명이 같은 중복 데이터가 있으면 하나만 남기고 제거
         if "업체명" in df.columns:
             df = df.drop_duplicates(subset=["업체명"]).reset_index(drop=True)
             
@@ -59,7 +58,7 @@ def search_unipass(bl_no, bl_type):
                 args=['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage', '--disable-extensions']
             )
             
-            # [핵심 수정] PC 와이드 해상도(1920x1080)를 지정하여 레이아웃이 깨지지 않고 정상적으로 나오게 합니다.
+            # PC 와이드 해상도(1920x1080) 지정
             page = browser.new_page(viewport={"width": 1920, "height": 1080})
             
             # 1. 유니패스 메인 페이지로 이동
@@ -108,8 +107,8 @@ def search_unipass(bl_no, bl_type):
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
-            # 7. 최종 상세 페이지 화면 캡처 및 텍스트 추출
-            page.screenshot(path=result["screenshot_path"], full_page=True)
+            # 7. 고화질 현재 화면 캡처 (찌그러짐 방지) 및 텍스트 추출
+            page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
 
@@ -140,7 +139,7 @@ def search_unipass(bl_no, bl_type):
         result["error"] = f"조회 중 오류가 발생했습니다: {e}"
         
     return result
-    
+
 # 메인 UI 화면 구성
 st.title("🚢 포워딩 B/L & 양하조회 자동화 대시보드")
 st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선사/대리점/터미널 연락처와 컨테이너 번호를 보여줍니다.")
@@ -148,7 +147,6 @@ st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선�
 with st.sidebar:
     st.header("📋 등록된 선사/터미널 DB")
     
-    # [추가됨] 웹 화면에서 직접 CSV 파일 업로드 기능
     uploaded_file = st.file_uploader("새로운 contacts.csv 파일 업로드", type=["csv"])
     if uploaded_file is not None:
         with open("contacts.csv", "wb") as f:
@@ -162,7 +160,6 @@ with st.sidebar:
 
 col_type, col_input, col_btn = st.columns([1.2, 3, 1])
 with col_type:
-    # M B/L이 기본값으로 먼저 선택되도록 순서 변경!
     bl_type = st.selectbox("B/L 구분", ["M B/L", "H B/L"])
 with col_input:
     bl_no = st.text_input("B/L 번호 입력", placeholder="예: HDMU1234567").strip().upper()
@@ -233,4 +230,12 @@ if search_clicked:
             st.markdown("---")
             st.subheader("📸 유니패스 조회 결과 캡처")
             if os.path.exists(data["screenshot_path"]):
+                with open(data["screenshot_path"], "rb") as file:
+                    st.download_button(
+                        label="📥 선명한 원본 캡처 이미지 다운로드 (.png)",
+                        data=file,
+                        file_name=f"UNIPASS_{bl_no}.png",
+                        mime="image/png",
+                        use_container_width=True
+                    )
                 st.image(data["screenshot_path"], use_container_width=True)
