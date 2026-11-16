@@ -38,7 +38,6 @@ st.markdown("""
 
     /* 전체 배경 톤앤매너: 세련된 소프트 오프화이트 */
     .stApp {
-    .stApp {
         background-color: #f8fafc;
     }
     
@@ -188,23 +187,19 @@ def search_unipass(bl_no, bl_type):
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
-            # ⏳ 결과 테이블 데이터가 렌더링될 때까지 대기
             try:
                 page.wait_for_selector("table tr td", timeout=15000)
             except:
                 pass
             
-            # ⏳ '처리중' 문구가 페이지 텍스트에서 완전히 사라질 때까지 최대 15초 동안 0.5초 간격으로 철저하게 검사
             for _ in range(30):
                 body_text = page.inner_text("body")
                 if "처리중" not in body_text:
                     break
                 time.sleep(0.5)
             
-            # 최종 화면 렌더링 안정화 대기
             page.wait_for_timeout(1500)
             
-            # 모든 로딩이 끝난 확실한 상태에서 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
@@ -233,25 +228,19 @@ def search_unipass(bl_no, bl_type):
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
             
-            # 📦 국제 표준 컨테이너 번호 형식(앞 4자리 중 마지막이 U, J, Z + 숫자 7자리)만 정확히 추출
-            # 📦 국제 표준 컨테이너 번호 형식 추출 (상단 MBL/HBL 기본 요약 표는 철저히 배제하고 본문 표에서만 추출)
+            # 📦 안전하고 확실한 컨테이너 번호 추출 (입력한 B/L 번호와 완벽히 일치하는 항목만 정확히 제외)
             found_containers = []
             tables = page.locator("table").all()
             for table in tables:
                 t_text = table.inner_text()
-                # 상단 기본 정보 및 요약 표에 흔히 등장하는 키워드가 포함된 표는 컨테이너 표가 아니므로 제외
-                if "화물관리번호" in t_text or "M B/L" in t_text or "H B/L" in t_text:
-                    continue
-                
-                # 본문 상세 표 내부에서 컨테이너 규격 패턴 매칭
                 matches = re.findall(r'[A-Z]{3}[UJZ]\d{7}', t_text)
                 for m in matches:
-                    if m != bl_no:
+                    # 입력한 B/L 번호와 대소문자 관계없이 일치하면 제외
+                    if m.upper() != bl_no.upper():
                         found_containers.append(m)
             
             result["containers"] = list(set(found_containers))
-
-           
+            
             browser.close()
             result["success"] = True
             
