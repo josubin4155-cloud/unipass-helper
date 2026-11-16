@@ -91,6 +91,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# 💡 세션 상태 초기화 (다운로드 시 초기화 방지)
+if "search_done" not in st.session_state:
+    st.session_state["search_done"] = False
+if "search_data" not in st.session_state:
+    st.session_state["search_data"] = {}
+
 def load_contacts():
     if os.path.exists("contacts.csv"):
         try:
@@ -113,7 +119,6 @@ def search_unipass(bl_no, bl_type):
         "arrival_date": "확인 불가",
         "terminal": "확인 불가",
         "latest_location": "확인 불가",
-        "unipass_url": "https://unipass.customs.go.kr/csp/index.do",
         "containers": [],
         "screenshot_path": "unipass_screenshot.png",
         "raw_text": ""
@@ -175,9 +180,6 @@ def search_unipass(bl_no, bl_type):
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
-            # 현재 브라우저가 도달한 최종 결과 페이지 URL 확보 (사용자가 원한 바로 그 창의 링크!)
-            result["unipass_url"] = page.url
-
             # 7. 데이터가 완벽히 채워진 후 고화질 현재 화면 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
@@ -208,7 +210,7 @@ def search_unipass(bl_no, bl_type):
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
 
-            # 9. 장치장 현황 정밀 파싱 보강 (테이블 셀 내부의 창고명/회사명 정확히 추출)[cite: 9, 10]
+            # 9. 장치장 현황 정밀 파싱
             try:
                 table_rows = page.locator("table tr").all()
                 for row in table_rows:
@@ -217,12 +219,10 @@ def search_unipass(bl_no, bl_type):
                         text = cell.inner_text().strip()
                         lines = [l.strip() for l in text.split('\n') if l.strip()]
                         for line in lines:
-                            # 물류 회사명, 창고명 키워드가 포함된 경우 우선 선택
                             if any(kw in line for kw in ["(주)", "창고", "터미널", "운송", "물류", "CY", "CFS", "항만", "운수", "해운", "공사", "부두", "국제"]):
                                 if result["latest_location"] == "확인 불가":
                                     result["latest_location"] = line
                                     break
-                            # 숫자 코드 바로 아랫줄인 경우
                             elif line.isdigit() and len(line) >= 5:
                                 idx = lines.index(line)
                                 if idx + 1 < len(lines):
@@ -236,7 +236,6 @@ def search_unipass(bl_no, bl_type):
                     if result["latest_location"] != "확인 불가":
                         break
                 
-                # 만약 테이블에서 못 찾았으나 terminal 정보가 있다면 대체
                 if result["latest_location"] == "확인 불가" and result["terminal"] != "확인 불가":
                     result["latest_location"] = result["terminal"]
             except Exception as loc_parse_err:
@@ -311,76 +310,76 @@ if search_clicked:
         loading_placeholder.empty()
 
         if not data["success"]:
+            st.session_state["search_done"] = False
             st.error(data["error"])
             if os.path.exists(data["screenshot_path"]):
                 st.image(data["screenshot_path"], caption="유니패스 조회 화면 캡처")
         else:
-            st.success(f"✅ [{bl_no}] 조회가 완료되었습니다!")
-            
-            # 상단 3개 카드: 선사/항공사, 선박대리점, 입항일
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.metric("선사 / 항공사", data["carrier"])
-            with c2:
-                st.metric("선박대리점", data["agency"])
-            with c3:
-                st.metric("입항일", data["arrival_date"])
-                
-            st.markdown("---")
-            
-            left_col, right_col = st.columns([1.2, 1])
-            
-            with left_col:
-                st.subheader("📞 매칭된 선사 및 터미널 연락처")
-                search_target_text = f"{data['carrier']} {data['agency']} {data['terminal']} {data['raw_text']}"
-                matched_rows = []
-                seen_companies = set()
-                
-                for _, row in contacts_df.iterrows():
-                    keyword = str(row["키워드"]).strip()
-                    company = str(row["업체명"]).strip()
-                    if keyword and keyword in search_target_text and company not in seen_companies:
-                        matched_rows.append(row)
-                        seen_companies.add(company)
-                
-                if matched_rows:
-                    for item in matched_rows:
-                        with st.container(border=True):
-                            st.markdown(f"**[{item['구분']}] {item['업체명']}**")
-                            st.write(f"☎️ **전화번호:** `{item['전화번호']}`")
-                            if pd.notna(item['홈페이지']) and str(item['홈페이지']).startswith("http"):
-                                st.link_button(f"🌐 {item['업체명']} 홈페이지 바로가기", item['홈페이지'])
-                else:
-                    st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
-                
-                # 💡 왼쪽 컬럼 아래쪽에 AI가 조회한 유니패스 결과 페이지 링크 달기
-                st.markdown("")
-                with st.container(border=True):
-                    st.markdown("**🔗 AI가 조회한 유니패스 결과 화면**")
-                    st.write("방금 자동화로 조회·캡처한 유니패스 상세 페이지 링크입니다.")
-                    st.link_button("🌐 유니패스 조회 결과 페이지 열기", data["unipass_url"], use_container_width=True)
+            st.session_state["search_done"] = True
+            st.session_state["search_data"] = data
 
-            with right_col:
-                st.subheader("📦 컨테이너 번호 (클릭하여 복사)")
-                if data["containers"]:
-                    for cntr in data["containers"]:
-                        st.code(cntr, language=None)
-                else:
-                    st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
-                
-                st.markdown("")
-                st.subheader("📍 장치장 현황")
-                st.info(f"🏢 **{data['latest_location']}**")
-            
-            st.markdown("---")
-            st.subheader("📸 유니패스 조회 결과 캡처")
-            if os.path.exists(data["screenshot_path"]):
-                with open(data["screenshot_path"], "rb") as file:
-                    st.download_button(
-                        label="📥 선명한 원본 캡처 이미지 다운로드 (.png)",
-                        data=file,
-                        file_name=f"UNIPASS_{bl_no}.png",
-                        mime="image/png",
-                        use_container_width=True
-                    )
-                st.image(data["screenshot_path"], use_container_width=True)
+# 💡 세션에 저장된 결과 출력 (다시 조회 버튼을 누르기 전까지 화면 유지)
+if st.session_state["search_done"]:
+    data = st.session_state["search_data"]
+    st.success(f"✅ 조회가 완료되었습니다!")
+    
+    # 상단 3개 카드: 선사/항공사, 선박대리점, 입항일
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("선사 / 항공사", data.get("carrier", "확인 불가"))
+    with c2:
+        st.metric("선박대리점", data.get("agency", "확인 불가"))
+    with c3:
+        st.metric("입항일", data.get("arrival_date", "확인 불가"))
+        
+    st.markdown("---")
+    
+    left_col, right_col = st.columns([1.2, 1])
+    
+    with left_col:
+        st.subheader("📞 매칭된 선사 및 터미널 연락처")
+        search_target_text = f"{data.get('carrier', '')} {data.get('agency', '')} {data.get('terminal', '')} {data.get('raw_text', '')}"
+        matched_rows = []
+        seen_companies = set()
+        
+        for _, row in contacts_df.iterrows():
+            keyword = str(row["키워드"]).strip()
+            company = str(row["업체명"]).strip()
+            if keyword and keyword in search_target_text and company not in seen_companies:
+                matched_rows.append(row)
+                seen_companies.add(company)
+        
+        if matched_rows:
+            for item in matched_rows:
+                with st.container(border=True):
+                    st.markdown(f"**[{item['구분']}] {item['업체명']}**")
+                    st.write(f"☎️ **전화번호:** `{item['전화번호']}`")
+                    if pd.notna(item['홈페이지']) and str(item['홈페이지']).startswith("http"):
+                        st.link_button(f"🌐 {item['업체명']} 홈페이지 바로가기", item['홈페이지'])
+        else:
+            st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
+
+    with right_col:
+        st.subheader("📦 컨테이너 번호 (클릭하여 복사)")
+        if data.get("containers"):
+            for cntr in data["containers"]:
+                st.code(cntr, language=None)
+        else:
+            st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
+        
+        st.markdown("")
+        st.subheader("📍 장치장 현황")
+        st.markdown(f"🏢 **{data.get('latest_location', '확인 불가')}**")
+    
+    st.markdown("---")
+    st.subheader("📸 유니패스 조회 결과 캡처")
+    if os.path.exists(data.get("screenshot_path", "")):
+        with open(data["screenshot_path"], "rb") as file:
+            st.download_button(
+                label="📥 선명한 원본 캡처 이미지 다운로드 (.png)",
+                data=file,
+                file_name=f"UNIPASS_screenshot.png",
+                mime="image/png",
+                use_container_width=True
+            )
+        st.image(data["screenshot_path"], use_container_width=True)
