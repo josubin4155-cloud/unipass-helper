@@ -347,5 +347,35 @@ if st.session_state["search_done"]:
         if matched_rows:
             for item in matched_rows:
                 with st.container(border=True):
-                    st.markdown(f"**[{item.get('구분', '')}] {item.get('업체명', '')}**")
-                    st.write(f"☎️ **전화번호:** `{item.get
+                    g_val = item.get('구분', '')
+                    c_val = item.get('업체명', '')
+                    p_val = item.get('전화번호', '')
+                    h_val = str(item.get('홈페이지', ''))
+                    
+                    st.markdown(f"**[{g_val}] {c_val}**")
+                    st.write(f"☎️ **전화번호:** `{p_val}`")
+                    if pd.notna(item.get('홈페이지')) and h_val.startswith("http"):
+                        st.link_button(f"🌐 {c_val} 홈페이지 바로가기", h_val)
+        else:
+            st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
+
+    with right_col:
+        st.subheader("📦 컨테이너 번호")
+        if data.get("containers"):
+            for cntr in data["containers"]:
+                st.code(cntr, language=None)
+        else:
+            st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
+    
+    st.markdown("---")
+    st.subheader("📸 유니패스 조회 결과 캡처")
+    if os.path.exists(data.get("screenshot_path", "")):
+        with open(data["screenshot_path"], "rb") as file:
+            st.download_button(
+                label="📥 선명한 원본 캡처 이미지 다운로드 (.png)",
+                data=file,
+                file_name=f"UNIPASS_screenshot.png",
+                mime="image/png",
+                use_container_width=True
+            )
+        st.image(data["screenshot_path"], use_container_width=True)
