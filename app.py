@@ -26,7 +26,7 @@ def check_password():
 check_password()
 # --- 비밀번호 확인 기능 끝 ---
 
-st.set_page_config(page_title="FNH LOGISTICS - B/L 대시보드", page_icon="🚢", layout="wide")
+st.set_page_config(page_title="FNH LOGISTICS - 화물 정보 대시보드", page_icon="🚢", layout="wide")
 
 # 🎨 [FNH 로지스틱스 브랜드 및 글씨 크기 커스텀 CSS 적용]
 st.markdown("""
