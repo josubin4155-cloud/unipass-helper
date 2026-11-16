@@ -28,7 +28,7 @@ check_password()
 
 st.set_page_config(page_title="FNH LOGISTICS - B/L & 양하조회 대시보드", page_icon="🚢", layout="wide")
 
-# 🎨 [FNH 로지스틱스 브랜드 커스텀 CSS 적용]
+# 🎨 [FNH 로지스틱스 브랜드 및 글씨 크기 커스텀 CSS 적용]
 st.markdown("""
     <style>
     /* 전체 배경 톤앤매너: 세련된 소프트 오프화이트 */
@@ -36,15 +36,18 @@ st.markdown("""
         background-color: #f8fafc;
     }
     
-    /* 타이틀 및 헤더 스타일 (딥 네이비 감성) */
+    /* 메인 타이틀 */
     h1 {
         font-weight: 800 !important;
         color: #0f172a !important;
         letter-spacing: -0.5px;
     }
-    h2, h3 {
+    
+    /* 섹션 제목(선사 및 터미널 연락처, 컨테이너 번호 등) 크기 키우기 */
+    h3 {
         color: #1e293b !important;
         font-weight: 700 !important;
+        font-size: 22px !important;
     }
     
     /* 상단 요약 메트릭 카드 디자인 (화이트 카드 + 입체 테두리) */
@@ -55,12 +58,16 @@ st.markdown("""
         border: 1px solid #e2e8f0;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     }
+    /* 메트릭 라벨(선사/항공사, 선박대리점, 입항일) 크기 조정 */
     div[data-testid="stMetric"] label {
         color: #64748b !important;
         font-weight: 600 !important;
+        font-size: 15px !important;
     }
+    /* 메트릭 값(화동해운 주식회사 등) 크기를 연락처 내용 크기 수준으로 아담하게 조절 */
     div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
         color: #0f172a !important;
+        font-size: 20px !important;
     }
     
     /* 🔍 유니패스 조회 버튼 (FNH 로고 포인트 레드 적용) */
@@ -305,7 +312,7 @@ if st.session_state["search_done"]:
     left_col, right_col = st.columns([1.2, 1])
     
     with left_col:
-        st.subheader("📞 매칭된 선사 및 터미널 연락처")
+        st.subheader("📞 선사 및 터미널 연락처")
         search_target_text = f"{data.get('carrier', '')} {data.get('agency', '')} {data.get('terminal', '')} {data.get('raw_text', '')}"
         matched_rows = []
         seen_companies = set()
@@ -328,7 +335,7 @@ if st.session_state["search_done"]:
             st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
 
     with right_col:
-        st.subheader("📦 컨테이너 번호 (클릭하여 복사)")
+        st.subheader("📦 컨테이너 번호")
         if data.get("containers"):
             for cntr in data["containers"]:
                 st.code(cntr, language=None)
