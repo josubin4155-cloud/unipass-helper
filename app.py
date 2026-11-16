@@ -48,51 +48,76 @@ def search_unipass(bl_no, bl_type):
     
     try:
         with sync_playwright() as p:
-            # 브라우저 실행 시 속도를 높여주는 최적화 옵션(args) 추가
             browser = p.chromium.launch(
                 headless=True,
                 args=['--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage', '--disable-extensions']
             )
             page = browser.new_page()
             
-            # 1. 유니패스 메인 페이지로 이동 (domcontentloaded로 변경해 대기 시간 대폭 단축)
+            # 1. 유니패스 메인 페이지로 이동
             page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=30000, wait_until="domcontentloaded")
             
-            # 2. M B/L - H B/L 구분 라디오버튼 선택
+            # 2. 화물진행정보 영역의 'M B/L - H B/L' 라디오버튼 클릭
             try:
-                page.click("label:has-text('M B/L - H B/L')", timeout=2000)
+                page.click("label:has-text('M B/L - H B/L')", timeout=3000)
             except:
                 try:
-                    page.click("input[value='MH']", timeout=2000)
+                    page.locator("input[value='MH']").click(force=True, timeout=3000)
                 except:
                     pass
             
-            # 3. M B/L은 왼쪽 칸, H B/L은 오른쪽 칸에 번호 입력
+            page.wait_for_timeout(5000) # 라디오 선택 후 입력창 활성화 대기
+
+            # 3. 화물진행정보 박스 내부의 텍스트 입력창들만 정확히 타겟팅
+            # 유니패스 메인 우측 상단 화물진행정보 영역 안의 입력창들을 찾습니다.
             try:
-                inputs = page.locator("input[type='text']")
+                # 화물진행정보 영역 내부의 텍스트 입력 필드들 가져오기
+                cargo_inputs = page.locator(".货物进度信息 input[type='text'], table input[type='text'], div input[type='text']")
+                # 보통 메인 화면 우측 화물진행정보 탭 안의 입력창들이 순서대로 M B/L, H B/L입니다.
+                all_text_inputs = page.locator("input[type='text']").all()
+                
+                # 상단 검색바를 제외하고 화물진행정보 영역의 입력창 찾기 (보통 페이지 내 중간에 위치)
+                target_input = None
+                for inp in all_text_inputs:
+                    placeholder = inp.get_attribute("placeholder") or ""
+                    # 메인 검색바가 아닌 화물진행정보용 입력창 필터링
+                    if "화물관리번호" not in placeholder and inp.is_visible():
+                        # 위치나 순서상 화물진행정보 입력창일 확률이 높음
+                        target_input = inp
+                        break
+                
+                # 안전하게 M B/L / H B/L 입력 필드 직접 선택 셀렉터 사용
+                # 유니패스 화면 구조상 M/B는 첫 번째 입력칸, H/B는 두 번째 입력칸
+                visible_inputs = []
+                for inp in all_text_inputs:
+                    if inp.is_visible() and inp.bounding_box() and inp.bounding_box()['y'] > 100: # 상단 네비게이션 제외
+                        visible_inputs.append(inp)
+                
                 if bl_type == "M B/L":
-                    inputs.first.fill(bl_no)
+                    # M B/L 입력 (보통 첫 번째 또는 지정된 칸)
+                    page.locator("input[name*='mblNo'], input[id*='mblNo']").first.fill(bl_no)
                 else:
-                    inputs.nth(1).fill(bl_no)
-            except Exception as e:
+                    # H B/L 입력
+                    page.locator("input[name*='hblNo'], input[id*='hblNo']").first.fill(bl_no)
+                    
+            except Exception as input_err:
+                # 대체 방법: 플레이스홀더나 위치 기반으로 강제 입력
                 if bl_type == "M B/L":
-                    page.fill("input[name*='mblNo']", bl_no)
+                    page.fill("input[name='mblNo']", bl_no)
                 else:
-                    page.fill("input[name*='hblNo']", bl_no)
+                    page.fill("input[name='hblNo']", bl_no)
             
-            # 4. 조회 버튼 클릭
+            # 4. 화물진행정보 영역 내의 '조회' 버튼 클릭
             try:
-                page.click("text=조회", timeout=2000)
+                # 화물진행정보 박스 안에 있는 조회 버튼 정밀 타겟팅
+                page.click("tr:has-text('M B/L') button, tr:has-text('B/L') button, #txtBlBtn, text='조회'", timeout=3000)
             except:
-                try:
-                    page.click("#txtBlBtn", timeout=2000)
-                except:
-                    page.keyboard.press("Enter")
+                page.keyboard.press("Enter")
             
-            # 5. 검색 결과 페이지 로딩 (빠른 domcontentloaded 사용으로 대기 시간 단축)
+            # 5. 검색 결과 페이지 로딩 대기
             page.wait_for_load_state("domcontentloaded", timeout=15000)
             
-            # 6. M B/L인 경우 화물관리번호 링크 클릭하여 상세 페이지 진입
+            # 6. M B/L인 경우 결과 목록에서 화물관리번호 링크 클릭하여 상세 페이지 진입
             if bl_type == "M B/L":
                 try:
                     page.locator("table tr td a").first.click(timeout=3000)
@@ -100,7 +125,7 @@ def search_unipass(bl_no, bl_type):
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 예외: {link_err}")
             
-            # 7. 최종 상세 페이지 화면 캡처 및 텍스트 추출 (불필요한 sleep 제거)
+            # 7. 최종 상세 페이지 화면 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"], full_page=True)
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
