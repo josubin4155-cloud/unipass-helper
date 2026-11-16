@@ -5,6 +5,7 @@ import pandas as pd
 from playwright.sync_api import sync_playwright
 import re
 import time
+import concurrent.futures
 
 # --- 비밀번호 확인 기능 시작 ---
 def check_password():
@@ -151,7 +152,7 @@ def search_unipass(bl_no, bl_type):
     return result
 
 # 메인 UI 화면 구성
-st.title("🚢 포워딩 B/L & 양하조회 자동화 대시보드")
+st.title("🚢 포워딩 B/L & 양하조회 대시보드")
 st.markdown("B/L 번호를 입력하면 유니패스를 자동 조회하여 선사/대리점/입항일 정보와 연락처, 컨테이너 번호를 보여줍니다.")
 
 with st.sidebar:
@@ -168,7 +169,6 @@ with st.sidebar:
     st.dataframe(contacts_df[["구분", "업체명", "전화번호"]], hide_index=True)
     st.info("💡 파일을 업로드하면 즉시 DB에 반영됩니다.")
 
-# 💡 버튼 글자가 짤리지 않도록 열 비율을 넉넉하게 조정했습니다 ([1, 2.5, 1.3])
 col_type, col_input, col_btn = st.columns([1, 2.5, 1.3])
 with col_type:
     bl_type = st.selectbox("B/L 구분", ["M B/L", "H B/L"])
@@ -185,19 +185,30 @@ if search_clicked:
     if not bl_no:
         st.warning("B/L 번호를 입력해 주세요!")
     else:
-        with st.status(f"🚢 [{bl_no}] 화물을 향해 출항 준비 중...", expanded=True) as status:
-            st.write("🌊 파도를 헤치고 유니패스 서버로 전력 질주 중...")
-            time.sleep(0.6)
+        # 💡 이모티콘과 문구가 부드럽게 롤링되는 감각적인 동적 로딩 효과
+        loading_placeholder = st.empty()
+        
+        loading_steps = [
+            ("🚢", f"[{bl_no}] 화물을 향해 출항 준비 중..."),
+            ("🌊", "파도를 헤치고 유니패스 서버로 전력 질주 중..."),
+            ("⚓", "선사, 대리점, 입항일 정보를 낚아채는 중..."),
+            ("📦", "컨테이너 번호와 물류 데이터를 말끔히 정리하는 중...")
+        ]
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(search_unipass, bl_no, bl_type)
             
-            st.write("⚓ 선사, 대리점, 입항일 정보를 낚아채는 중...")
-            data = search_unipass(bl_no, bl_type)
-            time.sleep(0.4)
-            
-            if data["success"]:
-                status.update(label=f"🎉 성공! [{bl_no}] 화물 포획 완료!", state="complete", expanded=False)
-            else:
-                status.update(label="⚠️ 조회 실패: 정보를 찾지 못했습니다.", state="error", expanded=True)
-            
+            idx = 0
+            while not future.done():
+                emoji, msg = loading_steps[idx % len(loading_steps)]
+                loading_placeholder.markdown(f"### {emoji} {msg}")
+                time.sleep(0.5)
+                idx += 1
+                
+            data = future.result()
+        
+        loading_placeholder.empty()  # 로딩 끝나면 깔끔하게 지우기
+
         if not data["success"]:
             st.error(data["error"])
             if os.path.exists(data["screenshot_path"]):
