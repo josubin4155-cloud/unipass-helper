@@ -236,12 +236,12 @@ def search_unipass(bl_no, bl_type):
             # 📦 국제 표준 컨테이너 번호 형식(앞 4자리 중 마지막이 U, J, Z + 숫자 7자리)만 정확히 추출
             # 💡 검색한 MBL 번호가 포함된 상단 요약 테이블은 제외하고, 하단 결과 테이블 텍스트에서만 컨테이너 번호 추출!
             # 💡 [핵심 수정] '컨테이너' 단어가 포함된 전용 테이블에서만 표준 규격 번호 추출 (MBL 혼동 원천 차단)
-            # 💡 [핵심 수정] '컨테이너' 단어가 포함된 전용 테이블에서만 표준 규격 번호 추출 (MBL 혼동 원천 차단)
+            # 💡 [핵심 수정] '컨테이너'가 있으면서 M/B/L이나 화물관리번호가 섞이지 않은 순수 컨테이너 표에서만 추출
             found_containers = []
             tables = page.locator("table").all()
             for table in tables:
                 t_text = table.inner_text()
-                if "컨테이너" in t_text:
+                if "컨테이너" in t_text and "M B/L" not in t_text and "화물관리번호" not in t_text:
                     matches = re.findall(r'[A-Z]{3}[UJZ]\d{7}', t_text)
                     for m in matches:
                         if m != bl_no:
