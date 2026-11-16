@@ -172,21 +172,26 @@ def search_unipass(bl_no, bl_type):
             except:
                 page.keyboard.press("Enter")
             
-            # ⏳ 로딩 및 데이터 렌더링을 확실히 기다리도록 대기 시간 넉넉히 확보 (4초)
             page.wait_for_load_state("domcontentloaded", timeout=15000)
-            page.wait_for_timeout(4000)
             
             if bl_type == "M B/L":
                 try:
                     page.wait_for_selector("table tr td a", timeout=7000)
                     page.locator("table tr td a").first.click()
                     page.wait_for_load_state("domcontentloaded", timeout=15000)
-                    # 상세 페이지 진입 후 데이터가 꽉 채워질 때까지 추가 대기 (4초)
-                    page.wait_for_timeout(4000)
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
-            # 모든 로딩이 완료된 시점에 화면 캡처 및 텍스트 추출
+            # ⏳ '처리중' 로딩 레이어가 화면에서 완전히 사라질 때까지 최대 10초 대기
+            try:
+                page.wait_for_selector("text=처리중", state="detached", timeout=10000)
+            except:
+                pass
+            
+            # 데이터 렌더링 안정화를 위한 추가 대기
+            page.wait_for_timeout(2000)
+            
+            # 완벽히 로딩된 상태에서 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
@@ -215,7 +220,8 @@ def search_unipass(bl_no, bl_type):
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
             
-            found_containers = re.findall(r'[A-Z]{4}\d{7}', body_text)
+            # 📦 국제 표준 컨테이너 번호 형식(앞 4자리 중 마지막이 U, J, Z + 숫자 7자리)만 정확히 추출
+            found_containers = re.findall(r'[A-Z]{3}[UJZ]\d{7}', body_text)
             result["containers"] = list(set(found_containers))
                         
             browser.close()
