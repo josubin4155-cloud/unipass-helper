@@ -235,17 +235,20 @@ def search_unipass(bl_no, bl_type):
             
             # 📦 국제 표준 컨테이너 번호 형식(앞 4자리 중 마지막이 U, J, Z + 숫자 7자리)만 정확히 추출
             # 💡 검색한 MBL 번호가 포함된 상단 요약 테이블은 제외하고, 하단 결과 테이블 텍스트에서만 컨테이너 번호 추출!
-            # 💡 [핵심 수정] 테이블 내부에 '컨테이너번호' 또는 'CNTR'이라는 명확한 컬럼 헤더가 있는 진짜 컨테이너 표에서만 추출
+            # 📦 국제 표준 컨테이너 번호 형식 추출 (상단 MBL/HBL 기본 요약 표는 철저히 배제하고 본문 표에서만 추출)
             found_containers = []
             tables = page.locator("table").all()
             for table in tables:
                 t_text = table.inner_text()
-                # '컨테이너번호' 또는 'CNTR'이 포함된 표이면서, M/B/L 기본 요약 표가 아닌 경우만 타겟팅
-                if ("컨테이너번호" in t_text or "CNTR" in t_text) and "M B/L" not in t_text:
-                    matches = re.findall(r'[A-Z]{3}[UJZ]\d{7}', t_text)
-                    for m in matches:
-                        if m != bl_no:
-                            found_containers.append(m)
+                # 상단 기본 정보 및 요약 표에 흔히 등장하는 키워드가 포함된 표는 컨테이너 표가 아니므로 제외
+                if "화물관리번호" in t_text or "M B/L" in t_text or "H B/L" in t_text:
+                    continue
+                
+                # 본문 상세 표 내부에서 컨테이너 규격 패턴 매칭
+                matches = re.findall(r'[A-Z]{3}[UJZ]\d{7}', t_text)
+                for m in matches:
+                    if m != bl_no:
+                        found_containers.append(m)
             
             result["containers"] = list(set(found_containers))
 
