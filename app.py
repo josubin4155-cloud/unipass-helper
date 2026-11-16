@@ -192,14 +192,12 @@ def search_unipass(bl_no, bl_type):
             except:
                 pass
             
-            # ⚡ [속도 개선] '처리중' 상태가 사라지는지 빠르게 체크 (체크 간격 0.2초, 최대 약 3~4초로 단축)
             for _ in range(15):
                 body_text = page.inner_text("body")
                 if "처리중" not in body_text:
                     break
                 time.sleep(0.2)
             
-            # 최소한의 렌더링 안정화 대기 (기존 1.5초 -> 300ms로 단축)
             page.wait_for_timeout(300)
             
             page.screenshot(path=result["screenshot_path"])
@@ -230,7 +228,6 @@ def search_unipass(bl_no, bl_type):
                         if val and "KG" not in val and "톤" not in val and len(val) < 30:
                             result["terminal"] = val
             
-            # 📦 컨테이너 번호 추출 (입력한 B/L 번호 제외)
             found_containers = []
             tables = page.locator("table").all()
             for table in tables:
@@ -301,7 +298,7 @@ if search_clicked:
             while not future.done():
                 emoji, msg = loading_steps[idx % len(loading_steps)]
                 loading_placeholder.markdown(f"⏳ {emoji} {msg}")
-                time.sleep(0.3)  # 로딩바 애니메이션 속도도 빠르게 조정
+                time.sleep(0.3)
                 idx += 1
                 
             data = future.result()
@@ -322,7 +319,6 @@ if st.session_state["search_done"]:
     data = st.session_state["search_data"]
     st.success(f"✅ 조회가 완료되었습니다!")
     
-    # 상단 3개 카드: 선사/항공사, 선박대리점, 입항일
     c1, c2, c3 = st.columns(3)
     with c1:
         st.metric("선사 / 항공사", data.get("carrier", "확인 불가"))
@@ -352,7 +348,4 @@ if st.session_state["search_done"]:
             for item in matched_rows:
                 with st.container(border=True):
                     st.markdown(f"**[{item.get('구분', '')}] {item.get('업체명', '')}**")
-                    st.write(f"☎️ **전화번호:** `{item.get('전화번호', '')}`")
-                    homepage = str(item.get('홈페이지', ''))
-                    if pd.notna(item.get('홈페이지')) and homepage.startswith("http"):
-                        st.link_button(f"🌐 {item.get('업체명', '')} 홈페이지 바로가
+                    st.write(f"☎️ **전화번호:** `{item.get
