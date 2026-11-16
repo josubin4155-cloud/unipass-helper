@@ -182,16 +182,23 @@ def search_unipass(bl_no, bl_type):
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
-            # ⏳ '처리중' 로딩 레이어가 화면에서 완전히 사라질 때까지 최대 10초 대기
+            # ⏳ 결과 테이블 데이터가 렌더링될 때까지 대기
             try:
-                page.wait_for_selector("text=처리중", state="detached", timeout=10000)
+                page.wait_for_selector("table tr td", timeout=15000)
             except:
                 pass
             
-            # 데이터 렌더링 안정화를 위한 추가 대기
-            page.wait_for_timeout(2000)
+            # ⏳ '처리중' 문구가 페이지 텍스트에서 완전히 사라질 때까지 최대 15초 동안 0.5초 간격으로 철저하게 검사
+            for _ in range(30):
+                body_text = page.inner_text("body")
+                if "처리중" not in body_text:
+                    break
+                time.sleep(0.5)
             
-            # 완벽히 로딩된 상태에서 캡처 및 텍스트 추출
+            # 최종 화면 렌더링 안정화 대기
+            page.wait_for_timeout(1500)
+            
+            # 모든 로딩이 끝난 확실한 상태에서 캡처 및 텍스트 추출
             page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
