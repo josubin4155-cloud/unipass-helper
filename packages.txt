@@ -20,3 +20,4 @@ libxfixes3
 libxrandr2
 libxrender1
 libxtst6
+fonts-noto-cjk
