@@ -195,38 +195,3 @@ if search_clicked:
             
             # 상단 3개 카드: 선사/항공사, 선박대리점, 입항일
             c1, c2, c3 = st.columns(3)
-            with c1:
-                st.metric("선사 / 항공사", data["carrier"])
-            with c2:
-                st.metric("선박대리점", data["agency"])
-            with c3:
-                st.metric("입항일", data["arrival_date"])
-                
-            st.markdown("---")
-            
-            left_col, right_col = st.columns([1.2, 1])
-            
-            with left_col:
-                st.subheader("📞 매칭된 선사 및 터미널 연락처")
-                search_target_text = f"{data['carrier']} {data['agency']} {data['terminal']} {data['raw_text']}"
-                matched_rows = []
-                seen_companies = set()
-                
-                for _, row in contacts_df.iterrows():
-                    keyword = str(row["키워드"]).strip()
-                    company = str(row["업체명"]).strip()
-                    if keyword and keyword in search_target_text and company not in seen_companies:
-                        matched_rows.append(row)
-                        seen_companies.add(company)
-                
-                if matched_rows:
-                    for item in matched_rows:
-                        with st.container(border=True):
-                            st.markdown(f"**[{item['구분']}] {item['업체명']}**")
-                            st.write(f"☎️ **전화번호:** `{item['전화번호']}`")
-                            if pd.notna(item['홈페이지']) and str(item['홈페이지']).startswith("http"):
-                                st.link_button(f"🌐 {item['업체명']} 홈페이지 바로가기", item['홈페이지'])
-                else:
-                    st.info("등록된 선사/터미널 DB와 일치하는 업체가 없습니다.")
-
-            with right_col
