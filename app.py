@@ -372,7 +372,7 @@ if st.session_state["search_done"]:
     
     st.markdown("---")
     # 💡 제목과 버튼을 좌측 기준 바로 옆에 나란히 배치 (비율을 7:3 설정)
-    col_title, col_btn, col_empty = st.columns([7:3])
+    col_title, col_btn, col_empty = st.columns([2.2, 1.2, 4.6])
     with col_title:
         st.subheader("📸 유니패스 조회 결과 캡처")
     with col_btn:
