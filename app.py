@@ -371,11 +371,11 @@ if st.session_state["search_done"]:
             st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
     
     st.markdown("---")
-   # 🌐 HTML Flexbox를 사용하여 제목과 버튼을 좌측 기준 바로 옆에 딱 붙이고 높낮이 완벽 수평 정렬
+   # 🌐 버튼을 정확히 한 칸 위로 살짝 올려서 제목과 완벽하게 수평 맞춤
     st.markdown("""
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
             <h3 style="margin: 0; color: #1e293b; font-weight: 700; font-size: 22px;">📸 유니패스 조회 결과 캡처</h3>
-            <a href="https://unipass.customs.go.kr/csp/index.do" target="_blank" style="background-color: #ffffff; color: #0f172a; padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+            <a href="https://unipass.customs.go.kr/csp/index.do" target="_blank" style="background-color: #ffffff; color: #0f172a; padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); position: relative; top: -3px;">
                 🌐 유니패스 바로가기
             </a>
         </div>
