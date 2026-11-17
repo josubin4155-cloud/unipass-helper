@@ -371,8 +371,8 @@ if st.session_state["search_done"]:
             st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
     
     st.markdown("---")
-    # 💡 제목과 버튼을 좌측 기준 바로 옆에 나란히 배치 (비율을 3:1 또는 4:1로 좁게 설정)
-    col_title, col_btn, col_empty = st.columns([2.2, 1.2, 4.6])
+    # 💡 제목과 버튼을 좌측 기준 바로 옆에 나란히 배치 (비율을 7:3 설정)
+    col_title, col_btn, col_empty = st.columns([7:3])
     with col_title:
         st.subheader("📸 유니패스 조회 결과 캡처")
     with col_btn:
