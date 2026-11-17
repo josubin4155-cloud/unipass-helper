@@ -371,12 +371,12 @@ if st.session_state["search_done"]:
             st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
     
     st.markdown("---")
-    # 💡 [추가 반영] 제목 옆 유니패스 홈페이지 바로가기 버튼 배치
-    col_title, col_link = st.columns([3, 1])
+    # 💡 제목과 버튼을 빈 공간 없이 나란히 밀착 배치 (비율을 8:2 정도로 조절)
+    col_title, col_link = st.columns([8, 2])
     with col_title:
         st.subheader("📸 유니패스 조회 결과 캡처")
     with col_link:
-        st.write("") 
+        # 버튼을 우측 정렬하고 빈 여백을 줄임
         st.link_button("🌐 유니패스 바로가기", "https://unipass.customs.go.kr/csp/index.do", use_container_width=True)
 
     if os.path.exists(data.get("screenshot_path", "")):
