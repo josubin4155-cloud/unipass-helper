@@ -149,13 +149,13 @@ def search_unipass(bl_no, bl_type):
             )
             
             page = browser.new_page(viewport={"width": 1920, "height": 1080})
-            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=20000, wait_until="domcontentloaded")
+            page.goto("https://unipass.customs.go.kr/csp/index.do", timeout=25000, wait_until="domcontentloaded")
             
             try:
-                page.click("label:has-text('M B/L - H B/L')", timeout=2000)
+                page.click("label:has-text('M B/L - H B/L')", timeout=2500)
             except:
                 try:
-                    page.locator("input[value='MH']").click(force=True, timeout=2000)
+                    page.locator("input[value='MH']").click(force=True, timeout=2500)
                 except:
                     pass
             
@@ -173,32 +173,33 @@ def search_unipass(bl_no, bl_type):
                     page.fill("input[name='hblNo']", bl_no)
             
             try:
-                page.click("tr:has-text('M B/L') button, tr:has-text('B/L') button, #txtBlBtn, text='조회'", timeout=2000)
+                page.click("tr:has-text('M B/L') button, tr:has-text('B/L') button, #txtBlBtn, text='조회'", timeout=2500)
             except:
                 page.keyboard.press("Enter")
             
-            page.wait_for_load_state("domcontentloaded", timeout=10000)
+            page.wait_for_load_state("domcontentloaded", timeout=12000)
             
+            # 💡 [핵심 수정] M B/L 조회 시 결과 리스트의 화물관리번호 링크를 확실하게 클릭하도록 타임아웃 연장 (10초)
             if bl_type == "M B/L":
                 try:
-                    page.wait_for_selector("table tr td a", timeout=4000)
+                    page.wait_for_selector("table tr td a", timeout=10000)
                     page.locator("table tr td a").first.click()
-                    page.wait_for_load_state("domcontentloaded", timeout=10000)
+                    page.wait_for_load_state("domcontentloaded", timeout=12000)
                 except Exception as link_err:
                     print(f"화물관리번호 링크 클릭 중 예외 발생: {link_err}")
             
             try:
-                page.wait_for_selector("table tr td", timeout=8000)
+                page.wait_for_selector("table tr td", timeout=10000)
             except:
                 pass
             
-            for _ in range(15):
+            for _ in range(20):
                 body_text = page.inner_text("body")
                 if "처리중" not in body_text:
                     break
                 time.sleep(0.2)
             
-            page.wait_for_timeout(300)
+            page.wait_for_timeout(500)
             
             page.screenshot(path=result["screenshot_path"])
             body_text = page.inner_text("body")
