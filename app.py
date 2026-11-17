@@ -371,13 +371,15 @@ if st.session_state["search_done"]:
             st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
     
     st.markdown("---")
-   # 💡 제목 칸을 타이트하게 잡고 버튼을 바로 옆에 배치
-    col_title, col_btn = st.columns([2.2, 7.8])
-    with col_title:
-        st.subheader("📸 유니패스 조회 결과 캡처")
-    with col_btn:
-        st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
-        st.link_button("🌐 유니패스 바로가기", "https://unipass.customs.go.kr/csp/index.do")
+   # 🌐 HTML Flexbox를 사용하여 제목과 버튼을 좌측 기준 바로 옆에 딱 붙이고 높낮이 완벽 수평 정렬
+    st.markdown("""
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            <h3 style="margin: 0; color: #1e293b; font-weight: 700; font-size: 22px;">📸 유니패스 조회 결과 캡처</h3>
+            <a href="https://unipass.customs.go.kr/csp/index.do" target="_blank" style="background-color: #ffffff; color: #0f172a; padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                🌐 유니패스 바로가기
+            </a>
+        </div>
+    """, unsafe_allow_html=True)
 
     if os.path.exists(data.get("screenshot_path", "")):
         with open(data["screenshot_path"], "rb") as file:
