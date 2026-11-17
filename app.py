@@ -371,12 +371,12 @@ if st.session_state["search_done"]:
             st.warning("표준 컨테이너 번호를 찾지 못했습니다.")
     
     st.markdown("---")
-    # 💡 제목과 버튼 사이 빈 공간 없이 밀착 배치 (비율을 7:3 정도로 조절)
-    col_title, col_link = st.columns([7, 3])
+    # 💡 제목과 버튼을 좌측 기준 바로 옆에 나란히 배치 (비율을 3:1 또는 4:1로 좁게 설정)
+    col_title, col_btn, col_empty = st.columns([2.2, 1.2, 4.6])
     with col_title:
         st.subheader("📸 유니패스 조회 결과 캡처")
-    with col_link:
-        # 버튼을 좌측 정렬하고 빈 여백을 줄임
+    with col_btn:
+        st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
         st.link_button("🌐 유니패스 바로가기", "https://unipass.customs.go.kr/csp/index.do", use_container_width=True)
 
     if os.path.exists(data.get("screenshot_path", "")):
