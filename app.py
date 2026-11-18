@@ -201,7 +201,8 @@ def search_unipass(bl_no, bl_type):
             
             page.wait_for_timeout(500)
             
-            page.screenshot(path=result["screenshot_path"])
+            # 💡 전체 페이지가 길게 다 나오도록 full_page=True 추가
+            page.screenshot(path=result["screenshot_path"], full_page=True)
             body_text = page.inner_text("body")
             result["raw_text"] = body_text
 
@@ -215,8 +216,10 @@ def search_unipass(bl_no, bl_type):
                 cells = [c.inner_text().strip() for c in row.locator("th, td").all()]
                 for i, cell in enumerate(cells):
                     if "선사/항공사" in cell and i + 1 < len(cells):
-                        if "확인 불가" in result["carrier"] or not result["carrier"]:
-                            result["carrier"] = cells[i + 1]
+                        val = cells[i + 1]
+                        # 💡 KG이나 톤 같은 불필요한 단어가 포함된 쓸데없는 데이터는 싹 걸러냄
+                        if val and len(val) < 30 and "KG" not in val and "톤" not in val:
+                            result["carrier"] = val
                     elif "선박대리점" in cell and i + 1 < len(cells):
                         if "확인 불가" in result["agency"] or not result["agency"]:
                             result["agency"] = cells[i + 1]
